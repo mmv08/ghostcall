@@ -15,14 +15,6 @@ const mockArtifactPath = 'out/MockContract.sol/MockContract.json'
 const zcallArtifactPath = 'out/ZCall.yul/ZCall.json'
 
 const emptyAbi = Abi.from([])
-const zcallErrorsAbi = Abi.from([
-  'error ZCallMalformedPayload()',
-  'error ZCallFailed(uint256)',
-  'error ZCallReturnTooLarge()',
-])
-
-const zcallInputMagic = Bytes.fromString('ZCL1')
-const zcallOutputMagic = Bytes.fromString('ZCR1')
 
 test('ZCall integration', async (t) => {
   const anvil = await startAnvil()
@@ -48,7 +40,7 @@ test('ZCall integration', async (t) => {
   const givenCalldataRevertWithMessage = AbiFunction.fromAbi(mockAbi, 'givenCalldataRevertWithMessage')
   const reset = AbiFunction.fromAbi(mockAbi, 'reset')
 
-  await t.test('aggregates configured returndata and an allowed revert from the mock', async () => {
+  await t.test('aggregates configured returndata and revert data from the mock', async () => {
     await sendFunctionTransaction(anvil.transport, mockAddress, reset, [])
 
     const getValueCall = encodeFunctionData(getValue, [])
@@ -71,21 +63,9 @@ test('ZCall integration', async (t) => {
     const result = await ethCallCreate(
       anvil.transport,
       buildZCallData(zcallInitcode, [
-        {
-          target: mockAddress,
-          allowFailure: false,
-          calldata: getValueCall,
-        },
-        {
-          target: mockAddress,
-          allowFailure: false,
-          calldata: getGreetingCall,
-        },
-        {
-          target: mockAddress,
-          allowFailure: true,
-          calldata: failCall,
-        },
+        {target: mockAddress, calldata: getValueCall},
+        {target: mockAddress, calldata: getGreetingCall},
+        {target: mockAddress, calldata: failCall},
       ]),
     )
 
@@ -123,21 +103,9 @@ test('ZCall integration', async (t) => {
     const result = await ethCallCreate(
       anvil.transport,
       buildZCallData(zcallInitcode, [
-        {
-          target: mockAddress,
-          allowFailure: false,
-          calldata: echoSevenCall,
-        },
-        {
-          target: mockAddress,
-          allowFailure: false,
-          calldata: echoEightCall,
-        },
-        {
-          target: mockAddress,
-          allowFailure: false,
-          calldata: echoNineCall,
-        },
+        {target: mockAddress, calldata: echoSevenCall},
+        {target: mockAddress, calldata: echoEightCall},
+        {target: mockAddress, calldata: echoNineCall},
       ]),
     )
 
@@ -149,42 +117,53 @@ test('ZCall integration', async (t) => {
     assert.equal(decodeFunctionResult(echoUint, entries[2]!.returndata), 700n)
   })
 
-  await t.test('reverts when a subcall failure is disallowed', async () => {
+  await t.test('returns failure entries and continues the batch', async () => {
     await sendFunctionTransaction(anvil.transport, mockAddress, reset, [])
 
     const failCall = encodeFunctionData(fail, [])
+    const getValueCall = encodeFunctionData(getValue, [])
+
     await sendFunctionTransaction(anvil.transport, mockAddress, givenCalldataRevertWithMessage, [
       failCall,
       'fatal mock revert',
     ])
+    await sendFunctionTransaction(anvil.transport, mockAddress, givenCalldataReturn, [
+      getValueCall,
+      encodeFunctionResult(getValue, 0x55n),
+    ])
 
-    const response = await ethCallCreateRaw(
+    const result = await ethCallCreate(
       anvil.transport,
       buildZCallData(zcallInitcode, [
-        {
-          target: mockAddress,
-          allowFailure: false,
-          calldata: failCall,
-        },
+        {target: mockAddress, calldata: failCall},
+        {target: mockAddress, calldata: getValueCall},
       ]),
     )
 
-    const error = getRpcError(response)
-    const revertData = getRevertData(error)
+    const entries = decodeZCallResponse(result)
 
-    const abiError = AbiError.fromAbi(zcallErrorsAbi, revertData)
-    assert.equal(abiError.name, 'ZCallFailed')
-    assert.equal(AbiError.decode(abiError, revertData), 0n)
+    assert.equal(entries.length, 2)
+    assert.equal(entries[0]?.success, false)
+
+    const revertError = AbiError.fromAbi(emptyAbi, entries[0]!.returndata)
+    assert.equal(revertError.name, 'Error')
+    assert.equal(AbiError.decode(revertError, entries[0]!.returndata), 'fatal mock revert')
+
+    assert.equal(entries[1]?.success, true)
+    assert.equal(decodeFunctionResult(getValue, entries[1]!.returndata), 0x55n)
   })
 
-  await t.test('reverts on malformed payload', async () => {
+  await t.test('returns empty bytes for an empty batch', async () => {
+    const result = await ethCallCreate(anvil.transport, zcallInitcode)
+    assert.equal(result, '0x')
+  })
+
+  await t.test('reverts on malformed trailing bytes', async () => {
     const response = await ethCallCreateRaw(anvil.transport, Hex.concat(zcallInitcode, '0x00'))
     const error = getRpcError(response)
     const revertData = getRevertData(error)
 
-    const abiError = AbiError.fromAbi(zcallErrorsAbi, revertData)
-    assert.equal(abiError.name, 'ZCallMalformedPayload')
-    assert.equal(AbiError.decode(abiError, revertData), undefined)
+    assert.equal(revertData, '0x')
   })
 })
 
@@ -197,7 +176,6 @@ type Artifact = {
 
 type CallSpec = {
   target: Hex.Hex
-  allowFailure: boolean
   calldata: Hex.Hex
 }
 
@@ -383,11 +361,10 @@ async function waitForReceipt(
 }
 
 function buildZCallData(zcallInitcode: Hex.Hex, calls: readonly CallSpec[]): Hex.Hex {
-  const parts = [zcallInputMagic]
+  const parts = []
 
   for (const call of calls) {
     parts.push(Bytes.from(call.target))
-    parts.push(Bytes.fromNumber(call.allowFailure ? 1 : 0, {size: 1}))
     parts.push(Bytes.fromNumber(Hex.size(call.calldata), {size: 2}))
     parts.push(Bytes.from(call.calldata))
   }
@@ -397,17 +374,16 @@ function buildZCallData(zcallInitcode: Hex.Hex, calls: readonly CallSpec[]): Hex
 
 function decodeZCallResponse(data: Hex.Hex): ZCallEntry[] {
   const bytes = Bytes.fromHex(data)
-  assert.equal(Bytes.toHex(Bytes.slice(bytes, 0, 4)), Bytes.toHex(zcallOutputMagic))
-
   const entries: ZCallEntry[] = []
-  let cursor = 4
+  let cursor = 0
 
   while (cursor < Bytes.size(bytes)) {
-    assert.ok(cursor + 3 <= Bytes.size(bytes), 'Truncated ZCall response header')
+    assert.ok(cursor + 2 <= Bytes.size(bytes), 'Truncated ZCall response header')
 
-    const success = Bytes.toNumber(Bytes.slice(bytes, cursor, cursor + 1), {size: 1}) === 1
-    const returndataLength = Bytes.toNumber(Bytes.slice(bytes, cursor + 1, cursor + 3), {size: 2})
-    const returndataStart = cursor + 3
+    const header = Bytes.toNumber(Bytes.slice(bytes, cursor, cursor + 2), {size: 2})
+    const success = (header & 0x8000) !== 0
+    const returndataLength = header & 0x7fff
+    const returndataStart = cursor + 2
     const returndataEnd = returndataStart + returndataLength
 
     assert.ok(returndataEnd <= Bytes.size(bytes), 'Truncated ZCall response body')

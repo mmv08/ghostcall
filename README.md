@@ -36,7 +36,8 @@ This implementation is intentionally focused on the cleanest read-only variant:
 - `STATICCALL` only
 - packed binary input instead of ABI encoding
 - packed binary output instead of ABI encoding
-- per-call `allowFailure`
+- always-return result entries for every subcall
+- SDK-enforced strict failure policy instead of engine-enforced batch reverts
 
 That keeps the initcode small, auditable, and easy to extend.
 
@@ -69,7 +70,6 @@ The caller sends:
 Payload layout:
 
 ```text
-4 bytes  magic = "ZCL1"
 N bytes  repeated call entries
 ```
 
@@ -77,7 +77,6 @@ Each call entry:
 
 ```text
 20 bytes target
- 1 byte  flags, bit 0 = allowFailure
  2 bytes calldata length (big-endian uint16)
  N bytes calldata
 ```
@@ -86,6 +85,7 @@ Notes:
 
 - Payload bytes are not normal calldata. They are appended after the compiled initcode and read via
   `CODECOPY`.
+- An empty payload is valid and returns an empty result blob.
 - Per-call calldata is limited to `65535` bytes because the format uses `uint16`.
 - The whole CREATE payload is still limited by the initcode size ceiling.
 
@@ -94,26 +94,26 @@ Notes:
 The program returns:
 
 ```text
-4 bytes  magic = "ZCR1"
 N bytes  repeated result entries
 ```
 
 Each result entry:
 
 ```text
- 1 byte  success flag
- 2 bytes returndata length (big-endian uint16)
+ 2 bytes packed header
+         bit 15    = success flag
+         bits 0-14 = returndata length (big-endian uint15)
  N bytes returndata
 ```
 
-If a subcall fails and `allowFailure` is unset, the whole aggregate reverts with:
+Subcall failures are returned inline as ordinary result entries with `success = 0`.
 
-- `ZCallFailed(uint256)` selector `0x2dd41103`
+The engine only reverts for malformed payloads or return-size violations, and those top-level
+reverts are intentionally empty. The SDK is expected to validate payloads up front and impose any
+higher-level "fail the whole batch" policy for callers that want it.
 
-Other top-level validation errors use:
-
-- `ZCallMalformedPayload()` selector `0x0ea77364`
-- `ZCallReturnTooLarge()` selector `0xe5f212d6`
+Per-call returndata is limited to `32767` bytes because the packed result header reserves one bit
+for the success flag.
 
 ## Limits
 
@@ -153,7 +153,7 @@ The test suite:
 - encodes function calldata with `ox`,
 - executes a CREATE-style `eth_call` against ZCall,
 - decodes both function return data and revert data with `ox`,
-- verifies configurable success paths, calldata-vs-method precedence, allowed failures, and top-level revert handling.
+- verifies configurable success paths, calldata-vs-method precedence, inline failure entries, the empty-batch case, and top-level malformed-payload handling.
 
 For static TypeScript checking:
 
@@ -167,9 +167,9 @@ The implementation chooses Yul over raw bytecode because it keeps the control fl
 still mapping one-to-one onto the EVM concepts that matter here:
 
 - `dataoffset(...)` anchors the appended payload boundary
-- `codecopy` loads the appended payload
+- `codecopy` streams headers and calldata directly from the appended payload
 - `staticcall` performs read-only subcalls
-- `returndatacopy` packs the aggregate response
+- `returndatacopy` packs the aggregate response into a compact binary format
 - `return` hands the batch result back to RPC
 
 That gives you a maintainable base version first, with a straightforward path to hand-optimizing
