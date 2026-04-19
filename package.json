@@ -5,12 +5,14 @@
 	"scripts": {
 		"build:contracts": "forge build && npm run generate:sdk:initcode",
 		"build:sdk": "npm run build:contracts && npm run typecheck",
+		"check": "biome check .",
+		"check:fix": "biome check --write .",
 		"check:sdk:initcode": "git diff --exit-code -- src/sdk/generated/initcode.ts",
 		"format": "biome format --write .",
 		"format:check": "biome format .",
 		"generate:sdk:initcode": "node scripts/generate-sdk-initcode.mjs",
 		"lint": "biome lint .",
-		"lint:fix": "biome lint --write .",
+		"lint:fix": "npm run check:fix",
 		"test": "npm run build:contracts && node --disable-warning=ExperimentalWarning --experimental-strip-types --test test/*.test.ts",
 		"test:watch": "node --disable-warning=ExperimentalWarning --experimental-strip-types --test --watch test/*.test.ts",
 		"typecheck": "tsc --project tsconfig.json"

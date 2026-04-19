@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-
-import { decodeResults, encodeCalls } from "../src/sdk/index.ts";
 import { Abi, AbiError, AbiFunction, Hex } from "ox";
+import { decodeResults, encodeCalls } from "../src/sdk/index.ts";
 
 import {
 	deployContract,
