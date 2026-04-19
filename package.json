@@ -12,6 +12,7 @@
     "ox": "0.9.6"
   },
   "devDependencies": {
+    "@safe-global/mock-contract": "4.1.0",
     "@types/node": "24.3.1",
     "typescript": "5.9.2"
   }

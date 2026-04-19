@@ -25,6 +25,7 @@ The repository now uses a minimal TypeScript-based test stack:
 - Node's built-in [`node:test`](https://nodejs.org/api/test.html) runner
 - Node's built-in TypeScript stripping for test execution
 - [`ox`](https://www.npmjs.com/package/ox) for JSON-RPC, ABI, hex, and byte utilities
+- [`@safe-global/mock-contract`](https://www.npmjs.com/package/@safe-global/mock-contract) for configurable mock-call behavior
 
 That keeps the dependency footprint small while giving us a stable place to grow ABI-heavy tests.
 
@@ -130,11 +131,11 @@ The test suite:
 
 - compiles the contracts with Foundry,
 - starts an ephemeral `anvil` instance automatically,
-- deploys Solidity fixture contracts from Foundry artifacts,
+- deploys and configures `MockContract` from Foundry artifacts,
 - encodes function calldata with `ox`,
 - executes a CREATE-style `eth_call` against ZCall,
 - decodes both function return data and revert data with `ox`,
-- verifies the success path, allowed-failure path, and revert path.
+- verifies configurable success paths, calldata-vs-method precedence, allowed failures, and top-level revert handling.
 
 For static TypeScript checking:
 

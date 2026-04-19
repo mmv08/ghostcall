@@ -11,6 +11,10 @@ import {Abi, AbiError, AbiFunction, Bytes, Hex, RpcTransport} from 'ox'
 const projectRoot = process.cwd()
 const defaultSender = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
 
+const mockArtifactPath = 'out/MockContract.sol/MockContract.json'
+const zcallArtifactPath = 'out/ZCall.yul/ZCall.json'
+
+const emptyAbi = Abi.from([])
 const zcallErrorsAbi = Abi.from([
   'error ZCallMalformedPayload()',
   'error ZCallFailed(uint256)',
@@ -26,61 +30,145 @@ test('ZCall integration', async (t) => {
     await stopAnvil(anvil)
   })
 
-  const zcallArtifact = await loadArtifact('out/ZCall.yul/ZCall.json')
-  const returnerArtifact = await loadArtifact('out/TestTargets.sol/AbiReturner.json')
-  const reverterArtifact = await loadArtifact('out/TestTargets.sol/AbiReverter.json')
+  const zcallArtifact = await loadArtifact(zcallArtifactPath)
+  const mockArtifact = await loadArtifact(mockArtifactPath)
 
-  const zcallInitcode = readBytecode(zcallArtifact, 'out/ZCall.yul/ZCall.json')
-  const returnerInitcode = readBytecode(returnerArtifact, 'out/TestTargets.sol/AbiReturner.json')
-  const reverterInitcode = readBytecode(reverterArtifact, 'out/TestTargets.sol/AbiReverter.json')
+  const zcallInitcode = readBytecode(zcallArtifact, zcallArtifactPath)
+  const mockInitcode = readBytecode(mockArtifact, mockArtifactPath)
+  const mockAbi = readAbi(mockArtifact, mockArtifactPath)
+  const mockAddress = await deployContract(anvil.transport, mockInitcode)
 
-  const returnerAbi = readAbi(returnerArtifact, 'out/TestTargets.sol/AbiReturner.json')
-  const reverterAbi = readAbi(reverterArtifact, 'out/TestTargets.sol/AbiReverter.json')
+  const getValue = AbiFunction.from('function getValue() returns (uint256)')
+  const getGreeting = AbiFunction.from('function getGreeting() returns (string)')
+  const echoUint = AbiFunction.from('function echoUint(uint256) returns (uint256)')
+  const fail = AbiFunction.from('function fail()')
 
-  const getValue = AbiFunction.fromAbi(returnerAbi, 'getValue')
-  const fail = AbiFunction.fromAbi(reverterAbi, 'fail')
+  const givenCalldataReturn = AbiFunction.fromAbi(mockAbi, 'givenCalldataReturn')
+  const givenMethodReturn = AbiFunction.fromAbi(mockAbi, 'givenMethodReturn')
+  const givenCalldataRevertWithMessage = AbiFunction.fromAbi(mockAbi, 'givenCalldataRevertWithMessage')
+  const reset = AbiFunction.fromAbi(mockAbi, 'reset')
 
-  const returnerAddress = await deployContract(anvil.transport, returnerInitcode)
-  const reverterAddress = await deployContract(anvil.transport, reverterInitcode)
+  await t.test('aggregates configured returndata and an allowed revert from the mock', async () => {
+    await sendFunctionTransaction(anvil.transport, mockAddress, reset, [])
 
-  await t.test('aggregates a successful call and an allowed failure', async () => {
-    const callData = buildZCallData(zcallInitcode, [
-      {
-        target: returnerAddress,
-        allowFailure: false,
-        calldata: AbiFunction.encodeData(getValue),
-      },
-      {
-        target: reverterAddress,
-        allowFailure: true,
-        calldata: AbiFunction.encodeData(fail),
-      },
+    const getValueCall = encodeFunctionData(getValue, [])
+    const getGreetingCall = encodeFunctionData(getGreeting, [])
+    const failCall = encodeFunctionData(fail, [])
+
+    await sendFunctionTransaction(anvil.transport, mockAddress, givenCalldataReturn, [
+      getValueCall,
+      encodeFunctionResult(getValue, 0x11223344n),
+    ])
+    await sendFunctionTransaction(anvil.transport, mockAddress, givenCalldataReturn, [
+      getGreetingCall,
+      encodeFunctionResult(getGreeting, 'hello from mock-contract'),
+    ])
+    await sendFunctionTransaction(anvil.transport, mockAddress, givenCalldataRevertWithMessage, [
+      failCall,
+      'mocked revert',
     ])
 
-    const result = await ethCallCreate(anvil.transport, callData)
+    const result = await ethCallCreate(
+      anvil.transport,
+      buildZCallData(zcallInitcode, [
+        {
+          target: mockAddress,
+          allowFailure: false,
+          calldata: getValueCall,
+        },
+        {
+          target: mockAddress,
+          allowFailure: false,
+          calldata: getGreetingCall,
+        },
+        {
+          target: mockAddress,
+          allowFailure: true,
+          calldata: failCall,
+        },
+      ]),
+    )
+
     const entries = decodeZCallResponse(result)
 
-    assert.equal(entries.length, 2)
-
+    assert.equal(entries.length, 3)
     assert.equal(entries[0]?.success, true)
-    assert.equal(AbiFunction.decodeResult(getValue, entries[0]!.returndata), 0x11223344n)
+    assert.equal(decodeFunctionResult(getValue, entries[0]!.returndata), 0x11223344n)
 
-    assert.equal(entries[1]?.success, false)
-    const subcallError = AbiError.fromAbi(reverterAbi, entries[1]!.returndata)
-    assert.equal(subcallError.name, 'AlwaysReverts')
-    assert.equal(AbiError.decode(subcallError, entries[1]!.returndata), undefined)
+    assert.equal(entries[1]?.success, true)
+    assert.equal(decodeFunctionResult(getGreeting, entries[1]!.returndata), 'hello from mock-contract')
+
+    assert.equal(entries[2]?.success, false)
+    const revertError = AbiError.fromAbi(emptyAbi, entries[2]!.returndata)
+    assert.equal(revertError.name, 'Error')
+    assert.equal(AbiError.decode(revertError, entries[2]!.returndata), 'mocked revert')
+  })
+
+  await t.test('prefers exact calldata mocks over method-level mocks', async () => {
+    await sendFunctionTransaction(anvil.transport, mockAddress, reset, [])
+
+    const echoSevenCall = encodeFunctionData(echoUint, [7n])
+    const echoEightCall = encodeFunctionData(echoUint, [8n])
+    const echoNineCall = encodeFunctionData(echoUint, [9n])
+
+    await sendFunctionTransaction(anvil.transport, mockAddress, givenMethodReturn, [
+      echoSevenCall,
+      encodeFunctionResult(echoUint, 700n),
+    ])
+    await sendFunctionTransaction(anvil.transport, mockAddress, givenCalldataReturn, [
+      echoEightCall,
+      encodeFunctionResult(echoUint, 800n),
+    ])
+
+    const result = await ethCallCreate(
+      anvil.transport,
+      buildZCallData(zcallInitcode, [
+        {
+          target: mockAddress,
+          allowFailure: false,
+          calldata: echoSevenCall,
+        },
+        {
+          target: mockAddress,
+          allowFailure: false,
+          calldata: echoEightCall,
+        },
+        {
+          target: mockAddress,
+          allowFailure: false,
+          calldata: echoNineCall,
+        },
+      ]),
+    )
+
+    const entries = decodeZCallResponse(result)
+
+    assert.equal(entries.length, 3)
+    assert.equal(decodeFunctionResult(echoUint, entries[0]!.returndata), 700n)
+    assert.equal(decodeFunctionResult(echoUint, entries[1]!.returndata), 800n)
+    assert.equal(decodeFunctionResult(echoUint, entries[2]!.returndata), 700n)
   })
 
   await t.test('reverts when a subcall failure is disallowed', async () => {
-    const callData = buildZCallData(zcallInitcode, [
-      {
-        target: reverterAddress,
-        allowFailure: false,
-        calldata: AbiFunction.encodeData(fail),
-      },
+    await sendFunctionTransaction(anvil.transport, mockAddress, reset, [])
+
+    const failCall = encodeFunctionData(fail, [])
+    await sendFunctionTransaction(anvil.transport, mockAddress, givenCalldataRevertWithMessage, [
+      failCall,
+      'fatal mock revert',
     ])
 
-    const response = await ethCallCreateRaw(anvil.transport, callData)
+    const response = await ethCallCreateRaw(
+      anvil.transport,
+      buildZCallData(zcallInitcode, [
+        {
+          target: mockAddress,
+          allowFailure: false,
+          calldata: failCall,
+        },
+      ]),
+    )
+
     const error = getRpcError(response)
     const revertData = getRevertData(error)
 
@@ -101,7 +189,7 @@ test('ZCall integration', async (t) => {
 })
 
 type Artifact = {
-  abi?: readonly unknown[]
+  abi?: Abi.Abi
   bytecode?: {
     object?: string
   }
@@ -144,15 +232,16 @@ type AnvilInstance = {
 }
 
 type Transport = RpcTransport.Http<false>
+type AnyFunction = ReturnType<typeof AbiFunction.from>
 
 async function loadArtifact(relativePath: string): Promise<Artifact> {
   const filePath = join(projectRoot, relativePath)
   return JSON.parse(await readFile(filePath, 'utf8')) as Artifact
 }
 
-function readAbi(artifact: Artifact, artifactPath: string) {
+function readAbi(artifact: Artifact, artifactPath: string): Abi.Abi {
   assert.ok(artifact.abi, `Missing ABI in ${artifactPath}`)
-  return Abi.from(artifact.abi as Abi.Abi)
+  return artifact.abi
 }
 
 function readBytecode(artifact: Artifact, artifactPath: string): Hex.Hex {
@@ -274,14 +363,14 @@ async function deployContract(
 async function waitForReceipt(
   transport: Transport,
   hash: Hex.Hex,
-): Promise<{contractAddress?: string | null}> {
+): Promise<{contractAddress?: string | null; status?: string | null}> {
   const timeoutAt = Date.now() + 10_000
 
   while (Date.now() < timeoutAt) {
     const receipt = (await transport.request({
       method: 'eth_getTransactionReceipt',
       params: [hash],
-    })) as {contractAddress?: string | null} | null
+    })) as {contractAddress?: string | null; status?: string | null} | null
 
     if (receipt) {
       return receipt
@@ -334,17 +423,36 @@ function decodeZCallResponse(data: Hex.Hex): ZCallEntry[] {
   return entries
 }
 
+async function sendFunctionTransaction(
+  transport: Transport,
+  to: Hex.Hex,
+  abiFunction: AnyFunction,
+  args: readonly unknown[],
+): Promise<void> {
+  await sendTransaction(transport, {
+    to,
+    data: encodeFunctionData(abiFunction, args),
+  })
+}
+
 async function ethCallCreate(
   transport: Transport,
   data: Hex.Hex,
 ): Promise<Hex.Hex> {
+  return ethCall(transport, {
+    from: defaultSender,
+    data,
+  })
+}
+
+async function ethCall(
+  transport: Transport,
+  request: {to?: Hex.Hex; from?: Hex.Hex; data: Hex.Hex},
+): Promise<Hex.Hex> {
   return (await transport.request({
     method: 'eth_call',
     params: [
-      {
-        from: defaultSender,
-        data,
-      },
+      request,
       'latest',
     ],
   })) as Hex.Hex
@@ -369,6 +477,26 @@ async function ethCallCreateRaw(
   )) as RawRpcResponse<Hex.Hex>
 }
 
+async function sendTransaction(
+  transport: Transport,
+  request: {to?: Hex.Hex; data: Hex.Hex},
+): Promise<Hex.Hex> {
+  const hash = (await transport.request({
+    method: 'eth_sendTransaction',
+    params: [
+      {
+        from: defaultSender,
+        ...request,
+      },
+    ],
+  })) as Hex.Hex
+
+  const receipt = await waitForReceipt(transport, hash)
+  assert.notEqual(receipt.status, '0x0', `Transaction ${hash} reverted unexpectedly`)
+
+  return hash
+}
+
 function getRpcError(response: RawRpcResponse<Hex.Hex>): RpcErrorObject {
   if ('error' in response) {
     return response.error
@@ -384,6 +512,18 @@ function getRevertData(error: RpcErrorObject): Hex.Hex {
   }
 
   return normalizeHex(data)
+}
+
+function encodeFunctionData(abiFunction: AnyFunction, args: readonly unknown[]): Hex.Hex {
+  return AbiFunction.encodeData(abiFunction as never, args as never)
+}
+
+function encodeFunctionResult(abiFunction: AnyFunction, output: unknown): Hex.Hex {
+  return AbiFunction.encodeResult(abiFunction as never, output as never)
+}
+
+function decodeFunctionResult(abiFunction: AnyFunction, result: Hex.Hex): unknown {
+  return AbiFunction.decodeResult(abiFunction as never, result)
 }
 
 function normalizeHex(value: string): Hex.Hex {
