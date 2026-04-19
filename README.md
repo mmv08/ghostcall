@@ -40,6 +40,24 @@ This implementation is intentionally focused on the cleanest read-only variant:
 
 That keeps the initcode small, auditable, and easy to extend.
 
+## Why not a naive Solidity constructor
+
+A straightforward deployless design is to write a Solidity constructor that:
+
+- accepts an ABI-encoded array of calls,
+- executes them in the constructor, and
+- rewrites constructor memory so the returned bytes look like a normal ABI-encoded multicall result.
+
+That approach works, but this project intentionally uses a lower-level Yul program instead.
+
+Advantages of the current design:
+
+- smaller base program, because it avoids Solidity's constructor scaffolding and generic ABI decoding,
+- a tighter wire format, because both requests and responses use a compact custom binary layout instead of full ABI encoding,
+- less compiler coupling, because the batching logic does not depend on Solidity memory-layout assumptions inside constructor-generated code.
+
+In practice, this means less initcode to ship on every request, fewer bytes on the wire, and a design that is easier to reason about at the EVM level.
+
 ## Input format
 
 The caller sends:
