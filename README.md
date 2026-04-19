@@ -9,6 +9,78 @@ back as the RPC result.
 
 The implementation lives in [`src/Ghostcall.yul`](src/Ghostcall.yul).
 
+## Quick example
+
+```ts
+import { decodeResults, encodeCalls } from "evm-ghostcall";
+import {
+	createPublicClient,
+	decodeFunctionResult,
+	encodeFunctionData,
+	http,
+	parseAbi,
+} from "viem";
+import { mainnet } from "viem/chains";
+
+const erc20Abi = parseAbi([
+	"function balanceOf(address account) view returns (uint256)",
+	"function allowance(address owner, address spender) view returns (uint256)",
+]);
+
+const token = "0xA0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
+const owner = "0x1111111111111111111111111111111111111111";
+const spender = "0x2222222222222222222222222222222222222222";
+
+const client = createPublicClient({
+	chain: mainnet,
+	transport: http(),
+});
+
+const data = encodeCalls([
+	{
+		to: token,
+		data: encodeFunctionData({
+			abi: erc20Abi,
+			functionName: "balanceOf",
+			args: [owner],
+		}),
+	},
+	{
+		to: token,
+		data: encodeFunctionData({
+			abi: erc20Abi,
+			functionName: "allowance",
+			args: [owner, spender],
+		}),
+	},
+]);
+
+const rawResult = await client.request({
+	method: "eth_call",
+	params: [{ data }, "latest"],
+});
+
+const [balanceResult, allowanceResult] = decodeResults(rawResult);
+
+if (!balanceResult?.success || !allowanceResult?.success) {
+	throw new Error("Ghostcall subcall failed");
+}
+
+const balance = decodeFunctionResult({
+	abi: erc20Abi,
+	functionName: "balanceOf",
+	data: balanceResult.returnData,
+});
+
+const allowance = decodeFunctionResult({
+	abi: erc20Abi,
+	functionName: "allowance",
+	data: allowanceResult.returnData,
+});
+
+console.log({ balance, allowance });
+```
+
 ## Why this works
 
 - `eth_call` without a `to` field executes the supplied `data` as CREATE initcode.
