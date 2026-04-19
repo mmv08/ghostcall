@@ -17,9 +17,6 @@ The implementation lives in [`src/ZCall.yul`](/Users/mmv/Projects/Personal/evm-z
 - Returned bytes are still subject to CREATE limits because the client treats them as would-be
   runtime bytecode.
 
-The original low-level feasibility checks are still preserved in
-[`scripts/poc.sh`](/Users/mmv/Projects/Personal/evm-zcall/scripts/poc.sh).
-
 ## Development stack
 
 The repository now uses a minimal TypeScript-based test stack:
