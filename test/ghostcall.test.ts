@@ -25,6 +25,9 @@ import {
 const mockArtifactPath = "out/MockContract.sol/MockContract.json";
 
 const emptyAbi = Abi.from([]);
+const maxCreateReturnSize = 0x6000;
+const encodedResultHeaderSize = 0x02;
+const maxSingleReturnDataSize = maxCreateReturnSize - encodedResultHeaderSize;
 
 test("Ghostcall integration", async (t) => {
 	const anvil = await startAnvil();
@@ -226,6 +229,58 @@ test("Ghostcall integration", async (t) => {
 		const result = await ethCallCreate(anvil.transport, encodeCalls([]));
 		assert.equal(result, "0x");
 	});
+
+	await t.test("returns data up to the CREATE return-size limit", async () => {
+		await sendFunctionTransaction(anvil.transport, mockAddress, reset, []);
+
+		const largeCall = "0x12345678";
+		const maxSizedResponse =
+			`0x${"11".repeat(maxSingleReturnDataSize)}` as Hex.Hex;
+
+		await sendFunctionTransaction(
+			anvil.transport,
+			mockAddress,
+			givenCalldataReturn,
+			[largeCall, maxSizedResponse],
+		);
+
+		const result = await ethCallCreate(
+			anvil.transport,
+			encodeCalls([{ to: mockAddress, data: largeCall }]),
+		);
+		const [entry] = decodeResults(result);
+
+		assert.ok(entry);
+		assert.equal(entry.success, true);
+		assert.equal(entry.returnData, maxSizedResponse);
+	});
+
+	await t.test(
+		"reverts when returndata exceeds the CREATE return-size limit",
+		async () => {
+			await sendFunctionTransaction(anvil.transport, mockAddress, reset, []);
+
+			const oversizedCall = "0x87654321";
+			const oversizedResponse =
+				`0x${"22".repeat(maxSingleReturnDataSize + 1)}` as Hex.Hex;
+
+			await sendFunctionTransaction(
+				anvil.transport,
+				mockAddress,
+				givenCalldataReturn,
+				[oversizedCall, oversizedResponse],
+			);
+
+			const response = await ethCallCreateRaw(
+				anvil.transport,
+				encodeCalls([{ to: mockAddress, data: oversizedCall }]),
+			);
+			const error = getRpcError(response);
+			const revertData = getRevertData(error);
+
+			assert.equal(revertData, "0x");
+		},
+	);
 
 	await t.test("reverts on malformed trailing bytes", async () => {
 		const response = await ethCallCreateRaw(

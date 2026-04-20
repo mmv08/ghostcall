@@ -3,6 +3,9 @@ import test from "node:test";
 
 import { decodeResults, encodeCalls } from "../src/sdk/index.ts";
 
+const maxCreateInitcodeSize = 0xc000;
+const encodedCallHeaderSize = 0x16;
+
 test("Ghostcall SDK", async (t) => {
 	await t.test("returns bundled initcode for an empty call list", () => {
 		const data = encodeCalls([]);
@@ -102,6 +105,27 @@ test("Ghostcall SDK", async (t) => {
 				]),
 			RangeError,
 		);
+	});
+
+	await t.test("enforces the CREATE initcode size limit", () => {
+		const baseData = encodeCalls([]);
+		const emptyCall = {
+			to: "0x1111111111111111111111111111111111111111",
+			data: "0x",
+		} as const;
+		const bundledInitcodeSize = (baseData.length - 2) / 2;
+		const maxEmptyCalls = Math.floor(
+			(maxCreateInitcodeSize - bundledInitcodeSize) / encodedCallHeaderSize,
+		);
+
+		const maxSizedBatch = Array.from(
+			{ length: maxEmptyCalls },
+			() => emptyCall,
+		);
+		const maxSizedData = encodeCalls(maxSizedBatch);
+
+		assert.ok((maxSizedData.length - 2) / 2 < maxCreateInitcodeSize);
+		assert.throws(() => encodeCalls([...maxSizedBatch, emptyCall]), RangeError);
 	});
 
 	await t.test("decodes empty and mixed result payloads", () => {

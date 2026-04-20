@@ -111,6 +111,9 @@ It intentionally does only two things:
 - `encodeCalls(calls)` bundles the canonical Ghostcall initcode and returns the full CREATE-style `eth_call` data blob.
 - `decodeResults(data)` parses the packed Ghostcall response format into `{ success, returnData }` entries.
 
+`encodeCalls` fails fast if any subcall exceeds the `uint16` calldata limit or if the full
+encoded CREATE payload would exceed the EVM initcode size ceiling.
+
 The SDK has no provider helpers, no ABI helpers, and no runtime artifact reads.
 
 ## Current scope
@@ -243,7 +246,7 @@ The test suite:
 - encodes function calldata with `ox`,
 - executes a CREATE-style `eth_call` against Ghostcall,
 - decodes both function return data and revert data with `ox`,
-- verifies configurable success paths, calldata-vs-method precedence, inline failure entries, the empty-batch case, and top-level malformed-payload handling.
+- verifies configurable success paths, calldata-vs-method precedence, inline failure entries, the empty-batch case, the CREATE request-size boundary, the CREATE return-size boundary, and top-level malformed-payload handling.
 
 For static TypeScript checking:
 

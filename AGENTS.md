@@ -1,6 +1,6 @@
 # agents.md
 
-This file provides project instructions for coding agents working in the `ghostcall` repository. It mirrors the working style and design philosophy of the referenced `picosafe` guide, adapted to this codebase and stripped of library-specific details.
+This file provides project instructions for coding agents working in the `ghostcall` repository.
 
 ## Project Overview
 

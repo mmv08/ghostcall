@@ -50,8 +50,11 @@ export type GhostcallResult = {
 const addressHexLength = 40;
 const encodedHeaderHexLength = 4;
 const maxCalldataSize = 0xffff;
+const encodedCallHeaderSize = 0x16;
+const maxCreateInitcodeSize = 0xc000;
 const successFlagMask = 0x8000;
 const returnDataLengthMask = 0x7fff;
+const bundledInitcodeSize = byteLength(ghostcallInitcode);
 
 /**
  * Encodes a list of contract calls into the full CREATE-style `eth_call` payload
@@ -69,7 +72,9 @@ const returnDataLengthMask = 0x7fff;
  *          the encoded call list.
  *
  * @throws {TypeError} If any call address or calldata value is not valid hex.
- * @throws {RangeError} If any call data exceeds the protocol `uint16` length limit.
+ * @throws {RangeError} If any call data exceeds the protocol `uint16` length limit
+ *                      or if the full encoded CREATE payload would exceed the
+ *                      EVM initcode size limit.
  *
  * @example
  * const data = encodeCalls([
@@ -88,6 +93,7 @@ const returnDataLengthMask = 0x7fff;
  */
 export function encodeCalls(calls: readonly GhostcallCall[]): Hex {
 	const encodedParts = [ghostcallInitcode.slice(2)];
+	let totalEncodedSize = bundledInitcodeSize;
 
 	for (const [index, call] of calls.entries()) {
 		assertAddress(call.to, `calls[${index}].to`);
@@ -97,6 +103,13 @@ export function encodeCalls(calls: readonly GhostcallCall[]): Hex {
 		if (calldataSize > maxCalldataSize) {
 			throw new RangeError(
 				`calls[${index}].data exceeds the ${maxCalldataSize}-byte calldata limit`,
+			);
+		}
+
+		totalEncodedSize += encodedCallHeaderSize + calldataSize;
+		if (totalEncodedSize > maxCreateInitcodeSize) {
+			throw new RangeError(
+				`encoded Ghostcall initcode exceeds the ${maxCreateInitcodeSize}-byte CREATE initcode limit`,
 			);
 		}
 
