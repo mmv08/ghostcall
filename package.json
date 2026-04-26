@@ -3,6 +3,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
+		"benchmark:limits": "node --disable-warning=ExperimentalWarning --experimental-strip-types scripts/benchmark-limits.ts",
 		"build:contracts": "forge build && npm run generate:sdk:initcode",
 		"build:sdk": "npm run build:contracts && npm run typecheck",
 		"check": "biome check .",

@@ -34,14 +34,20 @@ export type AnvilInstance = {
 	url: string;
 };
 
-export async function startAnvil(): Promise<AnvilInstance> {
+export type StartAnvilOptions = {
+	args?: readonly string[];
+};
+
+export async function startAnvil(
+	options: StartAnvilOptions = {},
+): Promise<AnvilInstance> {
 	const port = await getFreePort();
 	const url = `http://127.0.0.1:${port}`;
 	const logs: string[] = [];
 
 	const child = spawn(
 		"anvil",
-		["--host", "127.0.0.1", "--port", String(port)],
+		["--host", "127.0.0.1", "--port", String(port), ...(options.args ?? [])],
 		{
 			stdio: ["ignore", "pipe", "pipe"],
 		},

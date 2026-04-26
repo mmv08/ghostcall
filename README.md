@@ -171,7 +171,7 @@ Notes:
   `CODECOPY`.
 - An empty payload is valid and returns an empty result blob.
 - Per-call calldata is limited to `65535` bytes because the format uses `uint16`.
-- The whole CREATE payload is still limited by the initcode size ceiling.
+- The whole CREATE payload is still limited by the network/client initcode size ceiling.
 
 ## Output format
 
@@ -192,22 +192,59 @@ Each result entry:
 
 Subcall failures are returned inline as ordinary result entries with `success = 0`.
 
-The engine only reverts for malformed payloads or return-size violations, and those top-level
-reverts are intentionally empty. The SDK is expected to validate payloads up front and impose any
-higher-level "fail the whole batch" policy for callers that want it.
+The engine only reverts for malformed payloads or per-entry return-size violations, and those
+top-level reverts are intentionally empty. The SDK is expected to validate payloads up front and
+impose any higher-level "fail the whole batch" policy for callers that want it.
 
 Per-call returndata is limited to `32767` bytes because the packed result header reserves one bit
 for the success flag.
 
 ## Limits
 
-Observed against local `anvil`:
+The aggregate response is returned through CREATE-style execution, so clients still treat it as
+would-be runtime code. Ghostcall does not impose its own aggregate response cap; the effective
+ceiling comes from the chain, client, RPC provider, gas setting, and request-size policy.
 
-- maximum returned CREATE data: `24,576` bytes
-- maximum initcode size: `49,152` bytes
+Common reference points:
 
-Those limits apply directly here because the returned batch result is interpreted as would-be
-runtime code.
+- Ethereum's EIP-170 returned-code limit is `24,576` bytes.
+- Ethereum's EIP-3860 initcode limit is `49,152` bytes.
+- Other chains may set different values. For example, Monad documents larger contract-code and
+  initcode limits.
+
+Measure the endpoint you plan to use instead of assuming a consensus value. Provider-side request
+limits can be lower than the chain limit.
+
+## Benchmark limits
+
+The repository includes a TypeScript benchmark for rough endpoint-specific measurements:
+
+```bash
+npm run benchmark:limits -- --rpc-url "$RPC_URL" --mode raw
+```
+
+`raw` mode probes accepted CREATE initcode bytes and returned runtime-code bytes. `balances` mode
+uses a realistic ERC-20 balance workload:
+
+```bash
+npm run benchmark:limits -- \
+  --rpc-url "$RPC_URL" \
+  --mode balances \
+  --token "$TOKEN_ADDRESS" \
+  --owner "$OWNER_ADDRESS"
+```
+
+For balance benchmarking, pass token addresses that implement `balanceOf(address)` on the selected
+chain. The script repeats those token and owner inputs, builds ghostcall batches with the public
+SDK encoder, and searches for the largest successful call count.
+
+Useful options:
+
+- `--mode raw|balances|all`, default `all`
+- `--token` and `--owner`, repeatable or comma-separated
+- `--block`, `--from`, `--gas`, and `--timeout-ms`
+- `--max-calls`, `--max-initcode-bytes`, and `--max-runtime-bytes`
+- `--json` for machine-readable output
 
 ## Install
 

@@ -43,9 +43,8 @@ object "Ghostcall" {
         // - continue until the payload is fully consumed
         //
         // The SDK is expected to validate most caller-facing invariants ahead of time. The checks
-        // left in this file exist only to protect parser correctness and CREATE return-size limits.
+        // left in this file exist only to protect parser correctness and response packing.
 
-        let maxReturnSize := 0x6000
         let maxEntrySize := 0x7fff
         let callHeaderSize := 0x16
 
@@ -126,12 +125,12 @@ object "Ghostcall" {
             //   2-byte packed header + returndata bytes
             let nextWritePtr := add(add(writePtr, 0x02), returndataSize)
 
-            // CREATE-style execution still enforces a maximum return size because the EVM treats the
-            // returned bytes as would-be runtime code. If the aggregate response gets too large, the
-            // whole batch must fail.
-            if gt(sub(nextWritePtr, responsePtr), maxReturnSize) {
-                revert(0x00, 0x00)
-            }
+            // Intentionally do not enforce an aggregate response-size cap here. CREATE-style
+            // execution already treats returned bytes as would-be runtime code, so the active
+            // chain/client/RPC environment will reject oversized responses according to its own
+            // code-size policy. Keeping this uncapped lets the same Ghostcall initcode benefit from
+            // networks with larger limits, such as Monad's MIP-2:
+            // https://mips.monad.xyz/MIPS/MIP-2
 
             // Write the packed 2-byte result header into the high 2 bytes of the 32-byte word at
             // writePtr. The rest of that word does not matter because the return length is computed
