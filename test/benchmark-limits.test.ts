@@ -286,6 +286,51 @@ test("benchmark limit helpers", async (t) => {
 			}
 		},
 	);
+
+	await t.test("propagates invalid balance input errors", async () => {
+		const originalFetch = globalThis.fetch;
+		const methods: string[] = [];
+
+		globalThis.fetch = async (_input, init) => {
+			const request = JSON.parse(String(init?.body)) as {
+				id: number;
+				method: string;
+			};
+			methods.push(request.method);
+
+			if (request.method === "eth_chainId") {
+				return jsonRpcResponse(request.id, "0x1");
+			}
+
+			if (request.method === "eth_blockNumber") {
+				return jsonRpcResponse(request.id, "0x2");
+			}
+
+			assert.fail("invalid balance inputs should not reach eth_call");
+		};
+
+		try {
+			await assert.rejects(
+				runBenchmark({
+					rpcUrl: "https://example.invalid/rpc",
+					mode: "balances",
+					tokens: ["0x1234" as Hex],
+					owners: [ownerA],
+					blockTag: "latest",
+					from: ownerA,
+					timeoutMs: 30_000,
+					maxCalls: 10,
+					maxInitcodeBytes: 1_000,
+					maxRuntimeBytes: 1,
+					json: false,
+				}),
+				/calls\[0\]\.to must be a 20-byte hex string/,
+			);
+			assert.deepEqual(methods, ["eth_chainId", "eth_blockNumber"]);
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
 });
 
 function byteLength(value: Hex): number {

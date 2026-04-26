@@ -570,16 +570,20 @@ async function balanceBatchFailure(
 	count: number,
 ): Promise<string | null> {
 	let result: Hex;
+	let data: Hex;
 
 	try {
-		result = await ethCallCreate(
-			config,
-			encodeCalls(buildBalanceCalls(count, config.tokens, config.owners)),
-		);
+		data = encodeCalls(buildBalanceCalls(count, config.tokens, config.owners));
 	} catch (error) {
 		if (error instanceof RangeError) {
 			return `SDK encoding limit: ${error.message}`;
 		}
+		throw error;
+	}
+
+	try {
+		result = await ethCallCreate(config, data);
+	} catch (error) {
 		return messageFrom(error);
 	}
 
