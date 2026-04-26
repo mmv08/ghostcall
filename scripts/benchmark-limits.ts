@@ -598,7 +598,7 @@ async function balanceBatchFailure(
 
 	for (const [index, entry] of entries.entries()) {
 		if (!entry.success) {
-			throw new Error(`balanceOf call ${index} returned a failed result entry`);
+			return `balanceOf call ${index} returned a failed result entry`;
 		}
 
 		if (bytes(entry.returnData) !== 32) {
