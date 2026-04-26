@@ -112,6 +112,12 @@ object "Ghostcall" {
             let success := call(gas(), headerWord, 0, calldataPtr, calldataSize, 0, 0)
             let returndataSize := returndatasize()
 
+            // The packed result header has 15 returndata length bits; bit 15 is the success flag.
+            // Revert rather than letting oversized returndata collide with the success bit.
+            if gt(returndataSize, 0x7fff) {
+                revert(0x00, 0x00)
+            }
+
             // Compute where the next result entry would begin after writing:
             //   2-byte packed header + returndata bytes
             let nextWritePtr := add(add(writePtr, 0x02), returndataSize)

@@ -77,6 +77,7 @@ export type ParsedBenchmarkArgs =
 const balanceOfSelector = "70a08231";
 const defaultFrom = "0x0000000000000000000000000000000000000000";
 const emptyRuntimeInitcode = "60006000f3";
+const emptyRuntimeInitcodeBytes = emptyRuntimeInitcode.length / 2;
 const prettyInteger = new Intl.NumberFormat("en-US");
 
 export const balanceInputBytesPerCall = 20 + 2 + 36;
@@ -145,8 +146,23 @@ export function parseBenchmarkArgs(
 				.map((word) => word.trim())
 				.filter(Boolean),
 		);
-	const number = (name: string, fallback: number): number =>
-		last(name) === undefined ? fallback : Number(last(name));
+	const parseNumber = (name: string, raw: string): number => {
+		const parsed = Number(raw);
+		if (
+			!Number.isFinite(parsed) ||
+			!Number.isSafeInteger(parsed) ||
+			parsed < 0
+		) {
+			throw new Error(
+				`--${name} must be a non-negative safe integer, got "${raw}"`,
+			);
+		}
+		return parsed;
+	};
+	const number = (name: string, fallback: number): number => {
+		const raw = last(name);
+		return raw === undefined ? fallback : parseNumber(name, raw);
+	};
 	const quantity = (value: number): Hex => `0x${value.toString(16)}`;
 
 	const rpcUrl = last("rpc-url") ?? env.GHOSTCALL_BENCH_RPC_URL;
@@ -188,7 +204,7 @@ export function parseBenchmarkArgs(
 	};
 	const gas = last("gas");
 	if (gas !== undefined) {
-		config.gas = quantity(Number(gas));
+		config.gas = quantity(parseNumber("gas", gas));
 	}
 
 	return {
@@ -255,7 +271,16 @@ export function buildBalanceCalls(
  * @returns Initcode whose total length is exactly `sizeBytes`.
  */
 export function createRawInitcodeSizeProbe(sizeBytes: number): Hex {
-	return `0x${emptyRuntimeInitcode}${"00".repeat(sizeBytes - emptyRuntimeInitcode.length / 2)}`;
+	if (
+		!Number.isSafeInteger(sizeBytes) ||
+		sizeBytes < emptyRuntimeInitcodeBytes
+	) {
+		throw new RangeError(
+			`createRawInitcodeSizeProbe sizeBytes must be an integer >= ${emptyRuntimeInitcodeBytes}, the emptyRuntimeInitcode byte length`,
+		);
+	}
+
+	return `0x${emptyRuntimeInitcode}${"00".repeat(sizeBytes - emptyRuntimeInitcodeBytes)}`;
 }
 
 /**
@@ -295,6 +320,17 @@ export async function findLimit(
 	max: number,
 	probe: (candidate: number) => Promise<string | null>,
 ): Promise<LimitResult> {
+	if (max < min) {
+		return {
+			maxPass: min - 1,
+			firstFail: min,
+			exhaustedConfiguredMax: false,
+			configuredMax: max,
+			attempts: 0,
+			failure: `configured max ${max} is below minimum candidate ${min}`,
+		};
+	}
+
 	let attempts = 0;
 	let maxPass = min - 1;
 	let firstFail: number | null = null;
@@ -412,9 +448,17 @@ export async function runBenchmark(
 				})
 			: null;
 
+	const maxBalanceCallsByInitcode = Math.max(
+		0,
+		Math.floor(
+			(config.maxInitcodeBytes - ghostcallInitcodeBytes) /
+				balanceInputBytesPerCall,
+		),
+	);
+	const balanceSearchMax = Math.min(config.maxCalls, maxBalanceCallsByInitcode);
 	const balanceLimit =
 		config.mode === "balances" || config.mode === "all"
-			? await findLimit(1, config.maxCalls, async (count) =>
+			? await findLimit(1, balanceSearchMax, async (count) =>
 					balanceBatchFailure(config, count),
 				)
 			: null;
@@ -515,7 +559,7 @@ export function formatUsage(): string {
 		"  --gas <quantity>             Optional eth_call gas quantity",
 		"  --timeout-ms <ms>            Per-request timeout (default: 30000)",
 		"  --max-calls <count>          Balance benchmark search ceiling",
-		"  --max-initcode-bytes <bytes> Raw initcode search ceiling",
+		"  --max-initcode-bytes <bytes> Raw initcode and balance CREATE-data ceiling",
 		"  --max-runtime-bytes <bytes>  Raw returned-code search ceiling",
 		"  --json                       Print machine-readable JSON",
 	].join("\n");
@@ -533,6 +577,9 @@ async function balanceBatchFailure(
 			encodeCalls(buildBalanceCalls(count, config.tokens, config.owners)),
 		);
 	} catch (error) {
+		if (error instanceof RangeError) {
+			return `SDK encoding limit: ${error.message}`;
+		}
 		return messageFrom(error);
 	}
 
@@ -579,6 +626,8 @@ async function rpc(
 ): Promise<Hex> {
 	const controller = new AbortController();
 	const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
+	const id = nextRpcId;
+	nextRpcId += 1;
 
 	try {
 		const response = await fetch(config.rpcUrl, {
@@ -586,23 +635,23 @@ async function rpc(
 			headers: { "content-type": "application/json" },
 			body: JSON.stringify({
 				jsonrpc: "2.0",
-				id: nextRpcId,
+				id,
 				method,
 				params,
 			}),
 			signal: controller.signal,
 		});
-		nextRpcId += 1;
 
 		const body = await response.text();
-		const payload = JSON.parse(body) as {
-			result?: unknown;
-			error?: { code?: number; message?: string; data?: unknown };
-		};
 
 		if (!response.ok) {
 			throw new Error(`HTTP ${response.status}: ${body.slice(0, 240)}`);
 		}
+
+		const payload = JSON.parse(body) as {
+			result?: unknown;
+			error?: { code?: number; message?: string; data?: unknown };
+		};
 
 		if (payload.error !== undefined) {
 			throw new Error(

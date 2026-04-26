@@ -202,9 +202,9 @@ The engine only reverts for malformed payloads or per-entry return-size violatio
 top-level reverts are intentionally empty. The SDK is expected to validate payloads up front and
 impose any higher-level "fail the whole batch" policy for callers that want it.
 
-The packed result header can represent up to `32767` bytes of returndata per entry, but in
-practice the stricter CREATE return cap limits the whole response to `24,576` bytes, including the
-2-byte header on each entry.
+The packed result header can represent up to `32767` bytes of returndata per entry. On
+Ethereum, EIP-170's returned-code limit is usually the stricter bound: CREATE-style execution
+limits the whole response to `24,576` bytes, including the 2-byte header on each entry.
 
 ## Limits
 
@@ -243,7 +243,8 @@ npm run benchmark:limits -- \
 
 For balance benchmarking, pass token addresses that implement `balanceOf(address)` on the selected
 chain. The script repeats those token and owner inputs, builds ghostcall batches with the public
-SDK encoder, and searches for the largest successful call count.
+SDK encoder, and searches for the largest successful call count. The balance search is capped by
+both `--max-calls` and `--max-initcode-bytes`.
 
 Useful options:
 

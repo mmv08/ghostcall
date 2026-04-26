@@ -10,8 +10,9 @@ import {
 	encodeBalanceOfCalldata,
 	findLimit,
 	parseBenchmarkArgs,
+	runBenchmark,
 } from "../scripts/benchmark-limits.ts";
-import type { Hex } from "../src/sdk/index.ts";
+import { encodeCalls, type Hex } from "../src/sdk/index.ts";
 
 const tokenA = "0x1111111111111111111111111111111111111111";
 const tokenB = "0x2222222222222222222222222222222222222222";
@@ -92,6 +93,54 @@ test("benchmark limit helpers", async (t) => {
 				),
 			/token/i,
 		);
+		assert.throws(
+			() =>
+				parseBenchmarkArgs(
+					[
+						"--rpc-url",
+						"https://example.invalid/rpc",
+						"--mode",
+						"balances",
+						"--token",
+						tokenA,
+					],
+					{},
+				),
+			/owner/i,
+		);
+	});
+
+	await t.test("rejects non-numeric numeric CLI options locally", () => {
+		assert.throws(
+			() =>
+				parseBenchmarkArgs(
+					[
+						"--rpc-url",
+						"https://example.invalid/rpc",
+						"--mode",
+						"raw",
+						"--gas",
+						"banana",
+					],
+					{},
+				),
+			/--gas must be a non-negative safe integer/,
+		);
+		assert.throws(
+			() =>
+				parseBenchmarkArgs(
+					[
+						"--rpc-url",
+						"https://example.invalid/rpc",
+						"--mode",
+						"raw",
+						"--max-calls",
+						"Infinity",
+					],
+					{},
+				),
+			/--max-calls must be a non-negative safe integer/,
+		);
 	});
 
 	await t.test("encodes ERC-20 balanceOf calldata", () => {
@@ -137,7 +186,10 @@ test("benchmark limit helpers", async (t) => {
 	await t.test("generates exact-size raw initcode probes", () => {
 		assert.equal(createRawInitcodeSizeProbe(5), "0x60006000f3");
 		assert.equal(createRawInitcodeSizeProbe(8), "0x60006000f3000000");
-		assert.throws(() => createRawInitcodeSizeProbe(4), RangeError);
+		assert.throws(
+			() => createRawInitcodeSizeProbe(4),
+			/createRawInitcodeSizeProbe sizeBytes must be an integer >= 5/,
+		);
 	});
 
 	await t.test("generates raw runtime return probes", () => {
@@ -170,4 +222,83 @@ test("benchmark limit helpers", async (t) => {
 		assert.equal(result.exhaustedConfiguredMax, true);
 		assert.equal(result.failure, null);
 	});
+
+	await t.test(
+		"caps balance searches by configured initcode bytes",
+		async () => {
+			const originalFetch = globalThis.fetch;
+			const ghostcallInitcodeBytes = byteLength(encodeCalls([]));
+			const maxInitcodeBytes =
+				ghostcallInitcodeBytes + 3 * balanceInputBytesPerCall;
+			const observedCreateDataBytes: number[] = [];
+
+			globalThis.fetch = async (_input, init) => {
+				const request = JSON.parse(String(init?.body)) as {
+					id: number;
+					method: string;
+					params: unknown[];
+				};
+
+				if (request.method === "eth_chainId") {
+					return jsonRpcResponse(request.id, "0x1");
+				}
+
+				if (request.method === "eth_blockNumber") {
+					return jsonRpcResponse(request.id, "0x2");
+				}
+
+				assert.equal(request.method, "eth_call");
+				const call = request.params[0] as { data: Hex };
+				const createDataBytes = byteLength(call.data);
+				const count =
+					(createDataBytes - ghostcallInitcodeBytes) / balanceInputBytesPerCall;
+				assert.equal(Number.isInteger(count), true);
+				observedCreateDataBytes.push(createDataBytes);
+
+				return jsonRpcResponse(request.id, balanceResultPayload(count));
+			};
+
+			try {
+				const report = await runBenchmark({
+					rpcUrl: "https://example.invalid/rpc",
+					mode: "balances",
+					tokens: [tokenA],
+					owners: [ownerA],
+					blockTag: "latest",
+					from: ownerA,
+					timeoutMs: 30_000,
+					maxCalls: 10,
+					maxInitcodeBytes,
+					maxRuntimeBytes: 1,
+					json: false,
+				});
+
+				assert.equal(report.balances?.maxPass, 3);
+				assert.equal(report.balances?.exhaustedConfiguredMax, true);
+				assert.equal(report.balances?.fullCreateDataBytes, maxInitcodeBytes);
+				assert.deepEqual(observedCreateDataBytes, [
+					ghostcallInitcodeBytes + balanceInputBytesPerCall,
+					ghostcallInitcodeBytes + 2 * balanceInputBytesPerCall,
+					maxInitcodeBytes,
+				]);
+			} finally {
+				globalThis.fetch = originalFetch;
+			}
+		},
+	);
 });
+
+function byteLength(value: Hex): number {
+	return (value.length - 2) / 2;
+}
+
+function jsonRpcResponse(id: number, result: Hex): Response {
+	return new Response(JSON.stringify({ jsonrpc: "2.0", id, result }), {
+		headers: { "content-type": "application/json" },
+	});
+}
+
+function balanceResultPayload(count: number): Hex {
+	const resultEntry = `8020${"00".repeat(32)}`;
+	return `0x${resultEntry.repeat(count)}` as Hex;
+}
