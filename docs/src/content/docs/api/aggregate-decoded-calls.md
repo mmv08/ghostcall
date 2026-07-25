@@ -97,8 +97,7 @@ type GhostcallResultDecoder<TResult> = (
 ```
 
 An ordered list of contract calls. `to` is the contract address, `data` is the
-contract calldata, and `decodeResult` turns successful return data into the
-required application value.
+contract calldata, and `decodeResult` decodes successful return data.
 
 This call type does not accept `allowFailure`.
 

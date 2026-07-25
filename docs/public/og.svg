@@ -22,10 +22,9 @@
 		font-weight="600"
 		letter-spacing="1.4"
 	>
-		<text x="760" y="62">INSTALL</text>
-		<text x="850" y="62">GUIDE</text>
-		<text x="930" y="62">API</text>
-		<text x="990" y="62">REV 0.0.3</text>
+		<text x="900" y="62">INSTALL</text>
+		<text x="990" y="62">GUIDE</text>
+		<text x="1070" y="62">API</text>
 	</g>
 
 	<path d="M56 90H1144" stroke="#172033" />

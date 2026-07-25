@@ -88,8 +88,6 @@
 	--gc-code-ink: #172033;
 	--gc-font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
 	--gc-font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
-	--gc-label-column: clamp(10rem, 17vw, 13.5rem);
-	--gc-column-gap: clamp(2rem, 5vw, 5rem);
 
 	--sl-color-white: var(--gc-ink);
 	--sl-color-gray-1: #253047;
@@ -119,6 +117,11 @@
 	--sl-shadow-lg: none;
 	--sl-font: var(--gc-font-serif);
 	--sl-font-mono: var(--gc-font-mono);
+}
+
+:root {
+	--gc-label-column: clamp(10rem, 17vw, 13.5rem);
+	--gc-column-gap: clamp(2rem, 5vw, 5rem);
 	--sl-line-height: 1.62;
 	--sl-line-height-headings: 1.05;
 	--sl-content-width: 54rem;
@@ -418,10 +421,6 @@ site-search dialog {
 	text-transform: none;
 }
 
-[data-has-hero] {
-	--sl-content-width: 76rem;
-}
-
 [data-has-hero] main {
 	padding: 0;
 }
@@ -431,6 +430,7 @@ site-search dialog {
 }
 
 [data-has-hero] .content-panel > .sl-container {
+	max-width: 100%;
 	margin-inline: auto;
 }
 

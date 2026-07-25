@@ -3,8 +3,8 @@ title: Getting Started
 description: Install ghostcall and send a first batch of contract reads.
 ---
 
-This guide starts with an empty TypeScript project and ends with two decoded
-ERC-20 reads from one RPC request.
+This guide installs ghostcall in an empty TypeScript project and reads two
+ERC-20 values in one RPC request.
 
 ## 1. Install the packages
 

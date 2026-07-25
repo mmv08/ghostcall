@@ -4,7 +4,7 @@ description: Batch contract reads through one CREATE-style eth_call.
 template: splash
 hero:
   title: Batch reads through one eth_call
-  tagline: ghostcall combines contract reads into one eth_call. The npm package has no runtime dependencies.
+  tagline: ghostcall combines contract reads into one eth_call. No contract deployment or onchain dependencies are required.
 head:
   - tag: title
     content: ghostcall — Batch reads through one eth_call
@@ -31,8 +31,9 @@ import PayloadFigure from "../../components/PayloadFigure.astro";
 npm install @volga-sh/evm-ghostcall viem
 ```
 
-Examples use viem for RPC requests and ABI encoding. Other EIP-1193 providers
-and ABI libraries also work.
+`@volga-sh/evm-ghostcall` distributes the ghostcall program and its TypeScript
+SDK. Examples use viem for RPC requests and ABI encoding. Other EIP-1193
+providers and ABI libraries also work.
 
 </ManualSection>
 

@@ -31,8 +31,8 @@ import {
 } from "@volga-sh/evm-ghostcall";
 ```
 
-[`GhostcallSubcallError`](/api/subcall-error/) identifies the failed call when a
-batch is configured to stop on failure.
+[`GhostcallSubcallError`](/api/subcall-error/) identifies which contract call
+failed.
 
 See [Types](/api/types/) for the shared input, result, option, and provider
 types.
