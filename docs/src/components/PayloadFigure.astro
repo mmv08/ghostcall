@@ -1,0 +1,106 @@
+<div class="payload-figures">
+	<figure>
+		<div
+			class="byte-layout request-layout"
+			role="img"
+			aria-label="Request layout: 91-byte ghostcall initcode followed by repeated calldata length, target address, and calldata fields."
+		>
+			<span class="field field-program">91-byte program</span>
+			<span class="field field-length">len · 2</span>
+			<span class="field field-target">target · 20</span>
+			<span class="field field-data">calldata · N</span>
+			<span class="field field-repeat">…</span>
+		</div>
+		<figcaption><i>Fig. 3.1</i> — Request bytes.</figcaption>
+	</figure>
+
+	<figure>
+		<div
+			class="byte-layout response-layout"
+			role="img"
+			aria-label="Response layout: repeated packed success and return-data length header followed by return data."
+		>
+			<span class="field field-header">success + len · 2</span>
+			<span class="field field-return">return data · N</span>
+			<span class="field field-repeat">…</span>
+		</div>
+		<figcaption><i>Fig. 3.2</i> — Response bytes.</figcaption>
+	</figure>
+</div>
+
+<style>
+	.payload-figures {
+		display: grid;
+		gap: 1.5rem;
+		margin-block: 2rem;
+	}
+
+	figure {
+		min-width: 0;
+		margin: 0;
+		border: 1px solid var(--gc-ink);
+		padding: clamp(1rem, 2.5vw, 1.5rem);
+		background: var(--gc-surface);
+	}
+
+	.byte-layout {
+		display: flex;
+		gap: 0.45rem;
+		min-width: 0;
+	}
+
+	.field {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 0;
+		border: 1px solid var(--gc-rule-strong);
+		padding: 0.8rem 0.65rem;
+		color: var(--gc-muted);
+		font-family: var(--gc-font-mono);
+		font-size: clamp(0.6rem, 1.25vw, 0.72rem);
+		font-weight: 500;
+		line-height: 1.25;
+		text-align: center;
+	}
+
+	.field-program {
+		flex: 1.2;
+		color: var(--gc-ink);
+	}
+
+	.field-length,
+	.field-repeat {
+		flex: 0.55;
+	}
+
+	.field-target,
+	.field-data,
+	.field-header,
+	.field-return {
+		flex: 1;
+	}
+
+	figcaption {
+		margin-top: 0.85rem;
+		color: var(--gc-muted);
+		font-family: var(--gc-font-serif);
+		font-size: 0.95rem;
+	}
+
+	figcaption i {
+		color: var(--gc-ink);
+	}
+
+	@media (max-width: 35rem) {
+		.byte-layout {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+
+		.field-program,
+		.field-return {
+			grid-column: 1 / -1;
+		}
+	}
+</style>

@@ -1,0 +1,77 @@
+---
+// biome-ignore lint/correctness/noUnusedImports: Rendered by the Astro template.
+import EditLink from "virtual:starlight/components/EditLink";
+// biome-ignore lint/correctness/noUnusedImports: Rendered by the Astro template.
+import Pagination from "virtual:starlight/components/Pagination";
+
+// biome-ignore lint/correctness/noUnusedVariables: Referenced by the Astro template.
+const repository = "https://github.com/volga-sh/ghostcall";
+---
+
+<footer class="manual-footer">
+	<div class="manual-footer-meta">
+		<p>
+			<a href={`${repository}/blob/main/LICENSE`}>MIT</a>
+			<span aria-hidden="true">·</span>
+			<a href={repository}>Volga-sh</a>
+		</p>
+		<div class="manual-edit">
+			<EditLink />
+		</div>
+	</div>
+
+	<Pagination />
+</footer>
+
+<style>
+	.manual-footer {
+		display: flex;
+		flex-direction: column;
+		gap: 2rem;
+		margin-top: clamp(4rem, 8vw, 7rem);
+		padding-top: 0.35rem;
+		border-top: 3px double var(--gc-ink);
+	}
+
+	.manual-footer-meta {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 1rem 2rem;
+		padding-top: 1.15rem;
+		font-family: var(--gc-font-mono);
+		font-size: 0.72rem;
+		font-weight: 600;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
+
+	.manual-footer-meta p {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.65rem;
+		margin: 0;
+		color: var(--gc-muted);
+	}
+
+	.manual-footer-meta a {
+		color: var(--gc-muted);
+		text-decoration: none;
+	}
+
+	.manual-footer-meta a:hover,
+	.manual-footer-meta a:focus-visible {
+		color: var(--gc-accent);
+	}
+
+	.manual-edit {
+		white-space: nowrap;
+	}
+
+	@media (max-width: 36rem) {
+		.manual-footer-meta {
+			align-items: flex-start;
+			flex-direction: column;
+		}
+	}
+</style>

@@ -1,0 +1,106 @@
+---
+// biome-ignore lint/correctness/noUnusedImports: Rendered by the Astro template.
+import Search from "virtual:starlight/components/Search";
+// biome-ignore lint/correctness/noUnusedImports: Referenced by the Astro template.
+import packageManifest from "../../../package.json";
+
+// biome-ignore lint/correctness/noUnusedVariables: Referenced by the Astro template.
+const repository = "https://github.com/volga-sh/ghostcall";
+---
+
+<div class="manual-header">
+	<a class="manual-brand" href="/">ghostcall</a>
+
+	<nav class="manual-nav" aria-label="Primary">
+		<a href="/#install">Install</a>
+		<a href="/getting-started/">Guide</a>
+		<a href="/api/">API</a>
+		<a href="/protocol/">Protocol</a>
+		<a href={repository}>Source</a>
+		<span class="manual-revision">Rev {packageManifest.version}</span>
+	</nav>
+
+	<div class="manual-search">
+		<Search />
+	</div>
+</div>
+
+<style>
+	.manual-header {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr) auto;
+		align-items: center;
+		gap: clamp(1rem, 3vw, 3rem);
+		width: 100%;
+		height: 100%;
+	}
+
+	.manual-brand {
+		color: var(--gc-ink);
+		font-family: var(--gc-font-serif);
+		font-size: 1.75rem;
+		font-weight: 700;
+		letter-spacing: -0.035em;
+		line-height: 1;
+		text-decoration: none;
+		white-space: nowrap;
+	}
+
+	.manual-nav {
+		display: flex;
+		justify-content: flex-end;
+		align-items: center;
+		gap: clamp(0.8rem, 1.8vw, 1.7rem);
+		min-width: 0;
+		font-family: var(--gc-font-mono);
+		font-size: 0.72rem;
+		font-weight: 600;
+		letter-spacing: 0.08em;
+		line-height: 1;
+		text-transform: uppercase;
+		white-space: nowrap;
+	}
+
+	.manual-nav a {
+		color: var(--gc-muted);
+		text-decoration: none;
+	}
+
+	.manual-nav a:hover,
+	.manual-nav a:focus-visible {
+		color: var(--gc-accent);
+	}
+
+	.manual-revision {
+		color: color-mix(in srgb, var(--gc-muted) 72%, transparent);
+	}
+
+	.manual-search {
+		display: flex;
+		justify-content: flex-end;
+		min-width: 2.5rem;
+	}
+
+	@media (max-width: 68rem) {
+		.manual-nav a:nth-of-type(2),
+		.manual-nav a:nth-of-type(4),
+		.manual-revision {
+			display: none;
+		}
+	}
+
+	@media (max-width: 49.99rem) {
+		.manual-header {
+			grid-template-columns: minmax(0, 1fr) auto;
+			gap: 0.75rem;
+		}
+
+		.manual-nav {
+			display: none;
+		}
+
+		.manual-brand {
+			font-size: 1.55rem;
+		}
+	}
+</style>

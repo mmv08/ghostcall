@@ -1,0 +1,72 @@
+---
+interface Props {
+	index: string;
+	title: string;
+	id: string;
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: Referenced by the Astro template.
+const { index, title, id } = Astro.props;
+// biome-ignore lint/correctness/noUnusedVariables: Referenced by the Astro template.
+const headingId = `${id}-title`;
+---
+
+<section class="manual-section" id={id} aria-labelledby={headingId}>
+	<div class="manual-section-label">
+		<h2 id={headingId}>
+			<span>§{index}</span>
+			<span>{title}</span>
+		</h2>
+	</div>
+	<div class="manual-section-body">
+		<slot />
+	</div>
+</section>
+
+<style>
+	.manual-section {
+		display: grid;
+		width: 100%;
+		min-width: 0;
+		max-width: 100%;
+		grid-template-columns:
+			minmax(0, var(--gc-label-column))
+			minmax(0, 1fr);
+		gap: var(--gc-column-gap);
+		padding-block: clamp(2.5rem, 6vw, 5rem);
+		border-top: 1px solid var(--gc-rule);
+		scroll-margin-top: calc(var(--sl-nav-height) + 1.5rem);
+	}
+
+	.manual-section-label {
+		min-width: 0;
+	}
+
+	h2 {
+		display: flex;
+		gap: 0.75rem;
+		margin: 0;
+		padding: 0;
+		border: 0;
+		color: var(--gc-muted);
+		font-family: var(--gc-font-mono);
+		font-size: 0.78rem;
+		font-weight: 600;
+		letter-spacing: 0.09em;
+		line-height: 1.45;
+		text-transform: uppercase;
+	}
+
+	.manual-section-body {
+		width: 100%;
+		min-width: 0;
+		max-width: 100%;
+	}
+
+	@media (max-width: 55.99rem) {
+		.manual-section {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 1.6rem;
+		}
+	}
+</style>

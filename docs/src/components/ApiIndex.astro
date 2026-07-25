@@ -1,0 +1,148 @@
+---
+// biome-ignore lint/correctness/noUnusedVariables: Referenced by the Astro template.
+const entries = [
+	{
+		name: "aggregateDecodedCalls()",
+		href: "/api/aggregate-decoded-calls/",
+		description: "Decoded return values in call order.",
+	},
+	{
+		name: "aggregateCalls()",
+		href: "/api/aggregate-calls/",
+		description: "Raw success flags and return data in call order.",
+	},
+	{
+		name: "encodeCalls()",
+		href: "/api/encode-calls/",
+		description: "The data field for a manual eth_call request.",
+	},
+	{
+		name: "decodeResults()",
+		href: "/api/decode-results/",
+		description: "Parsed entries from a raw ghostcall response.",
+	},
+];
+---
+
+<div class="api-index" role="table" aria-label="ghostcall functions">
+	<div class="api-index-header" role="row">
+		<span role="columnheader">Function</span>
+		<span role="columnheader">Result</span>
+	</div>
+	{
+		entries.map((entry) => (
+			<a class="api-index-row" href={entry.href} role="row">
+				<code role="cell">{entry.name}</code>
+				<span role="cell">{entry.description}</span>
+				<i aria-hidden="true">→</i>
+			</a>
+		))
+	}
+</div>
+
+<style>
+	.api-index {
+		margin: 0;
+		border-block: 1px solid var(--gc-ink);
+	}
+
+	.api-index-header,
+	.api-index-row {
+		display: grid;
+		grid-template-columns: minmax(14rem, 0.9fr) minmax(0, 1.1fr) 1.5rem;
+		gap: 1.5rem;
+		align-items: baseline;
+	}
+
+	.api-index-header {
+		padding: 0.7rem 1rem;
+		background: var(--gc-code-chrome);
+		color: var(--gc-muted);
+		font-family: var(--gc-font-mono);
+		font-size: 0.64rem;
+		font-weight: 600;
+		letter-spacing: 0.09em;
+		text-transform: uppercase;
+	}
+
+	.api-index-row {
+		position: relative;
+		border-bottom: 1px solid var(--gc-rule);
+		padding: 1.05rem 1rem;
+		color: var(--gc-muted);
+		text-decoration: none;
+		transition:
+			background-color 120ms ease,
+			color 120ms ease;
+	}
+
+	.api-index-row:last-child {
+		border-bottom: 0;
+	}
+
+	.api-index-row::before {
+		position: absolute;
+		inset-block: 0;
+		inset-inline-start: 0;
+		width: 3px;
+		background: transparent;
+		content: "";
+	}
+
+	.api-index-row code {
+		border: 0;
+		background: transparent;
+		color: var(--gc-ink);
+		font-family: var(--gc-font-mono);
+		font-size: 0.86rem;
+		font-weight: 600;
+	}
+
+	.api-index-row > span {
+		font-family: var(--gc-font-serif);
+		font-size: 1rem;
+		line-height: 1.4;
+	}
+
+	.api-index-row i {
+		color: var(--gc-muted);
+		font-family: var(--gc-font-mono);
+		font-size: 0.8rem;
+		font-style: normal;
+	}
+
+	.api-index-row:hover,
+	.api-index-row:focus-visible {
+		background: var(--gc-accent-soft);
+	}
+
+	.api-index-row:hover::before,
+	.api-index-row:focus-visible::before {
+		background: var(--gc-accent);
+	}
+
+	.api-index-row:hover code,
+	.api-index-row:focus-visible code,
+	.api-index-row:hover i,
+	.api-index-row:focus-visible i {
+		color: var(--gc-accent);
+	}
+
+	@media (max-width: 42rem) {
+		.api-index-header {
+			display: none;
+		}
+
+		.api-index-row {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 0.45rem;
+			padding-inline-end: 2.5rem;
+		}
+
+		.api-index-row i {
+			position: absolute;
+			inset-block-start: 1.1rem;
+			inset-inline-end: 1rem;
+		}
+	}
+</style>

@@ -1,0 +1,141 @@
+---
+title: Batch reads through one eth_call
+description: Batch contract reads through one CREATE-style eth_call.
+template: splash
+hero:
+  title: Batch reads through one eth_call
+  tagline: ghostcall combines contract reads into one eth_call without runtime dependencies.
+head:
+  - tag: title
+    content: ghostcall — Batch reads through one eth_call
+  - tag: meta
+    attrs:
+      property: og:title
+      content: ghostcall — Batch reads through one eth_call
+  - tag: meta
+    attrs:
+      name: twitter:title
+      content: ghostcall — Batch reads through one eth_call
+---
+
+import ApiIndex from "../../components/ApiIndex.astro";
+import BatchFlow from "../../components/BatchFlow.astro";
+import ManualSection from "../../components/ManualSection.astro";
+import PayloadFigure from "../../components/PayloadFigure.astro";
+
+<BatchFlow />
+
+<ManualSection index="01" title="Install" id="install">
+
+```sh title="Terminal"
+npm install @volga-sh/evm-ghostcall viem
+```
+
+`@volga-sh/evm-ghostcall` contains the batching SDK. viem supplies the provider
+and ABI helpers used in this manual; other EIP-1193 providers and ABI libraries
+remain compatible.
+
+</ManualSection>
+
+<ManualSection index="02" title="Read two values" id="read-two-values">
+
+This example reads the WETH total supply and one account balance on Ethereum.
+ghostcall sends both reads in one RPC request and returns decoded `bigint`
+values in the same order.
+
+```ts title="Listing 2.1 · TypeScript"
+import { aggregateDecodedCalls } from "@volga-sh/evm-ghostcall";
+import {
+	createPublicClient,
+	decodeFunctionResult,
+	encodeFunctionData,
+	http,
+	parseAbi,
+} from "viem";
+import { mainnet } from "viem/chains";
+
+const client = createPublicClient({
+	chain: mainnet,
+	transport: http(),
+});
+
+const abi = parseAbi([
+	"function totalSupply() view returns (uint256)",
+	"function balanceOf(address account) view returns (uint256)",
+]);
+const token = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+const account = "0x28C6c06298d514Db089934071355E5743bf21d60";
+
+const [totalSupply, balance] = await aggregateDecodedCalls(client, [
+	{
+		to: token,
+		data: encodeFunctionData({
+			abi,
+			functionName: "totalSupply",
+		}),
+		decodeResult: (data) =>
+			decodeFunctionResult({
+				abi,
+				functionName: "totalSupply",
+				data,
+			}),
+	},
+	{
+		to: token,
+		data: encodeFunctionData({
+			abi,
+			functionName: "balanceOf",
+			args: [account],
+		}),
+		decodeResult: (data) =>
+			decodeFunctionResult({
+				abi,
+				functionName: "balanceOf",
+				data,
+			}),
+	},
+]);
+
+console.log({ totalSupply, balance });
+```
+
+`totalSupply` and `balance` are inferred as `bigint`. The returned tuple follows
+the call order.
+
+<p class="manual-follow-link">
+	<a href="/getting-started/">Getting started <span aria-hidden="true">→</span></a>
+</p>
+
+</ManualSection>
+
+<ManualSection index="03" title="How it works" id="how-it-works">
+
+The SDK places each target address and calldata value after the 91-byte ghostcall
+program. An `eth_call` without a `to` address executes those bytes as contract
+creation code. Each target call runs in order, and the program returns a packed
+result entry for every call.
+
+Because `eth_call` simulates execution, no contract is deployed and no state
+change is saved.
+
+<PayloadFigure />
+
+<p class="manual-follow-link">
+	<a href="/protocol/">Protocol <span aria-hidden="true">→</span></a>
+	<a href="/limits/">Limits <span aria-hidden="true">→</span></a>
+</p>
+
+</ManualSection>
+
+<ManualSection index="04" title="API index" id="api-index">
+
+The SDK exports four functions. Each function owns one part of the request or
+response flow.
+
+<ApiIndex />
+
+<p class="manual-follow-link">
+	<a href="/api/">Complete API reference <span aria-hidden="true">→</span></a>
+</p>
+
+</ManualSection>

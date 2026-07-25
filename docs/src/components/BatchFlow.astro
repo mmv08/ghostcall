@@ -1,0 +1,331 @@
+---
+// biome-ignore lint/correctness/noUnusedVariables: Referenced by the Astro template.
+const repository = "https://github.com/volga-sh/ghostcall";
+---
+
+<section class="manual-plate" aria-labelledby="plate-01-label">
+	<div class="manual-plate-label" id="plate-01-label">
+		<span>Plate 0.1</span>
+		<small>Calls / request / results</small>
+	</div>
+
+	<div class="manual-plate-body">
+		<figure>
+			<div
+				class="batch-flow"
+				role="img"
+				aria-label="Three contract reads are encoded into one eth_call. Three results return in the same order."
+			>
+				<ul class="flow-stack flow-inputs" aria-hidden="true">
+					<li>balanceOf(address)</li>
+					<li>totalSupply()</li>
+					<li>decimals()</li>
+				</ul>
+
+				<span class="flow-arrow flow-arrow-in" aria-hidden="true"></span>
+
+				<div class="flow-request" aria-hidden="true">
+					<strong>ghostcall</strong>
+					<span>initcode program</span>
+				</div>
+
+				<span class="flow-arrow flow-arrow-out" aria-hidden="true"></span>
+
+				<ul class="flow-stack flow-results" aria-hidden="true">
+					<li>0x…de0b</li>
+					<li>0x…07a1</li>
+					<li>0x…0012</li>
+				</ul>
+			</div>
+
+			<figcaption>
+				<span><i>Fig. 0.1</i> — Three contract reads encoded into one simulated request.</span>
+				<strong>3 calls / 1 request</strong>
+			</figcaption>
+		</figure>
+
+		<nav class="plate-links" aria-label="Landing page links">
+			<a href="/getting-started/">Getting started <span aria-hidden="true">→</span></a>
+			<a href={repository}>Source <span aria-hidden="true">→</span></a>
+		</nav>
+	</div>
+</section>
+
+<style>
+	.manual-plate {
+		display: grid;
+		grid-template-columns: var(--gc-label-column) minmax(0, 1fr);
+		gap: var(--gc-column-gap);
+		padding-block: 1.5rem clamp(3.5rem, 7vw, 6rem);
+	}
+
+	.manual-plate-label {
+		display: flex;
+		flex-direction: column;
+		gap: 0.85rem;
+		padding-top: 0.6rem;
+		color: var(--gc-muted);
+		font-family: var(--gc-font-mono);
+		font-size: 0.78rem;
+		font-weight: 600;
+		letter-spacing: 0.09em;
+		line-height: 1.45;
+		text-transform: uppercase;
+	}
+
+	.manual-plate-label small {
+		max-width: 14rem;
+		color: color-mix(in srgb, var(--gc-muted) 75%, transparent);
+		font-size: 0.66rem;
+		font-weight: 500;
+	}
+
+	.manual-plate-body,
+	figure {
+		min-width: 0;
+		margin: 0;
+	}
+
+	.batch-flow {
+		display: grid;
+		grid-template-columns:
+			minmax(8rem, 1fr) 2.5rem minmax(9rem, 1.1fr) 2.5rem
+			minmax(7rem, 0.9fr);
+		align-items: center;
+		gap: clamp(0.5rem, 1vw, 1rem);
+		min-width: 0;
+		padding: clamp(1.25rem, 3vw, 2rem);
+		border: 1px solid var(--gc-ink);
+		background: var(--gc-surface);
+	}
+
+	.flow-stack {
+		display: grid;
+		gap: 0.55rem;
+		min-width: 0;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.flow-stack li {
+		min-width: 0;
+		overflow: hidden;
+		border: 1px solid var(--gc-rule-strong);
+		padding: 0.48rem 0.7rem;
+		color: var(--gc-muted);
+		font-family: var(--gc-font-mono);
+		font-size: clamp(0.62rem, 1vw, 0.75rem);
+		font-weight: 500;
+		line-height: 1;
+		text-align: center;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.flow-request {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.65rem;
+		border: 2px solid var(--gc-ink);
+		padding: 1rem 0.7rem 0.75rem;
+		text-align: center;
+	}
+
+	.flow-request strong {
+		color: var(--gc-ink);
+		font-family: var(--gc-font-serif);
+		font-size: clamp(1.05rem, 2vw, 1.35rem);
+		line-height: 1;
+	}
+
+	.flow-request span {
+		color: var(--gc-muted);
+		font-family: var(--gc-font-mono);
+		font-size: 0.62rem;
+		font-weight: 600;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
+
+	.flow-arrow {
+		position: relative;
+		display: block;
+		width: 100%;
+		height: 1px;
+		background: var(--gc-rule-strong);
+	}
+
+	.flow-arrow::after {
+		position: absolute;
+		inset-block-start: 50%;
+		inset-inline-end: 0;
+		width: 0.55rem;
+		height: 0.55rem;
+		border-block-start: 1px solid var(--gc-rule-strong);
+		border-inline-end: 1px solid var(--gc-rule-strong);
+		content: "";
+		transform: translateY(-50%) rotate(45deg);
+		transform-origin: center;
+	}
+
+	figcaption {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: 1rem 2rem;
+		padding-top: 1rem;
+		color: var(--gc-muted);
+		font-family: var(--gc-font-serif);
+		font-size: 1rem;
+		line-height: 1.45;
+	}
+
+	figcaption i {
+		color: var(--gc-ink);
+	}
+
+	figcaption strong {
+		color: var(--gc-ink);
+		font-family: var(--gc-font-mono);
+		font-size: 0.78rem;
+		letter-spacing: 0.04em;
+		white-space: nowrap;
+	}
+
+	.plate-links {
+		display: flex;
+		gap: 1.75rem;
+		margin-top: 1.6rem;
+	}
+
+	.plate-links a {
+		border-bottom: 1px solid var(--gc-ink);
+		padding-bottom: 0.2rem;
+		color: var(--gc-ink);
+		font-family: var(--gc-font-mono);
+		font-size: 0.76rem;
+		font-weight: 600;
+		letter-spacing: 0.03em;
+		text-decoration: none;
+		text-transform: uppercase;
+	}
+
+	.plate-links a:hover,
+	.plate-links a:focus-visible {
+		border-color: var(--gc-accent);
+		color: var(--gc-accent);
+	}
+
+	.flow-inputs li {
+		animation: input-arrival 2.4s cubic-bezier(0.2, 0.75, 0.25, 1) both;
+	}
+
+	.flow-inputs li:nth-child(2) {
+		animation-delay: 90ms;
+	}
+
+	.flow-inputs li:nth-child(3) {
+		animation-delay: 180ms;
+	}
+
+	.flow-request {
+		animation: request-pulse 2.4s ease-out 320ms both;
+	}
+
+	.flow-results li {
+		animation: result-arrival 2.4s cubic-bezier(0.2, 0.75, 0.25, 1) 650ms both;
+	}
+
+	.flow-results li:nth-child(2) {
+		animation-delay: 740ms;
+	}
+
+	.flow-results li:nth-child(3) {
+		animation-delay: 830ms;
+	}
+
+	@keyframes input-arrival {
+		0% {
+			opacity: 0;
+			transform: translateX(-0.7rem);
+		}
+		18%,
+		100% {
+			opacity: 1;
+			transform: translateX(0);
+		}
+	}
+
+	@keyframes request-pulse {
+		0%,
+		24% {
+			background: var(--gc-surface);
+		}
+		38% {
+			background: var(--gc-accent-soft);
+		}
+		58%,
+		100% {
+			background: var(--gc-surface);
+		}
+	}
+
+	@keyframes result-arrival {
+		0%,
+		30% {
+			opacity: 0;
+			transform: translateX(-0.7rem);
+		}
+		52%,
+		100% {
+			opacity: 1;
+			transform: translateX(0);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.flow-inputs li,
+		.flow-request,
+		.flow-results li {
+			animation: none;
+		}
+	}
+
+	@media (max-width: 55.99rem) {
+		.manual-plate {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 1.6rem;
+		}
+
+		.manual-plate-label {
+			padding-top: 0;
+		}
+	}
+
+	@media (max-width: 42rem) {
+		.batch-flow {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 0.9rem;
+		}
+
+		.flow-arrow {
+			justify-self: center;
+			width: 1px;
+			height: 1.6rem;
+		}
+
+		.flow-arrow::after {
+			inset-block-start: auto;
+			inset-block-end: 0;
+			inset-inline-end: 50%;
+			transform: translateX(50%) rotate(135deg);
+		}
+
+		figcaption {
+			align-items: flex-start;
+			flex-direction: column;
+		}
+	}
+</style>
