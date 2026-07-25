@@ -4,46 +4,60 @@ const entries = [
 	{
 		name: "aggregateDecodedCalls()",
 		href: "/api/aggregate-decoded-calls/",
-		description: "Decoded return values in call order.",
+		description: "Decoded values in call order.",
 	},
 	{
 		name: "aggregateCalls()",
 		href: "/api/aggregate-calls/",
-		description: "Raw success flags and return data in call order.",
+		description: "Success flags and return data in call order.",
 	},
 	{
 		name: "encodeCalls()",
 		href: "/api/encode-calls/",
-		description: "The data field for a manual eth_call request.",
+		description: "Request data for a manual eth_call.",
 	},
 	{
 		name: "decodeResults()",
 		href: "/api/decode-results/",
-		description: "Parsed entries from a raw ghostcall response.",
+		description: "Entries parsed from a raw response.",
 	},
 ];
 ---
 
-<div class="api-index" role="table" aria-label="ghostcall functions">
-	<div class="api-index-header" role="row">
-		<span role="columnheader">Function</span>
-		<span role="columnheader">Result</span>
+<nav class="api-index" aria-label="ghostcall functions">
+	<div class="api-index-header" aria-hidden="true">
+		<span>Function</span>
+		<span>Result</span>
 	</div>
-	{
-		entries.map((entry) => (
-			<a class="api-index-row" href={entry.href} role="row">
-				<code role="cell">{entry.name}</code>
-				<span role="cell">{entry.description}</span>
-				<i aria-hidden="true">→</i>
-			</a>
-		))
-	}
-</div>
+	<ul>
+		{
+			entries.map((entry) => (
+				<li>
+					<a class="api-index-row" href={entry.href}>
+						<code>{entry.name}</code>
+						<span>{entry.description}</span>
+						<i aria-hidden="true">→</i>
+					</a>
+				</li>
+			))
+		}
+	</ul>
+</nav>
 
 <style>
 	.api-index {
 		margin: 0;
 		border-block: 1px solid var(--gc-ink);
+	}
+
+	.api-index ul {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.api-index li {
+		margin: 0;
 	}
 
 	.api-index-header,
@@ -67,6 +81,7 @@ const entries = [
 
 	.api-index-row {
 		position: relative;
+		width: 100%;
 		border-bottom: 1px solid var(--gc-rule);
 		padding: 1.05rem 1rem;
 		color: var(--gc-muted);
@@ -76,7 +91,7 @@ const entries = [
 			color 120ms ease;
 	}
 
-	.api-index-row:last-child {
+	.api-index li:last-child .api-index-row {
 		border-bottom: 0;
 	}
 

@@ -4,7 +4,7 @@ import { defineConfig } from "astro/config";
 const site = "https://ghostcall.volga.sh";
 const socialImage = new URL("/og.png", site).href;
 const socialImageAlt =
-	"ghostcall technical manual: Batch reads through one eth_call.";
+	"ghostcall documentation: Batch reads through one eth_call.";
 
 export default defineConfig({
 	site,

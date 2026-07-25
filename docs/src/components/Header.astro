@@ -13,9 +13,9 @@ const repository = "https://github.com/volga-sh/ghostcall";
 
 	<nav class="manual-nav" aria-label="Primary">
 		<a href="/#install">Install</a>
-		<a href="/getting-started/">Guide</a>
+		<a class="manual-nav-optional" href="/getting-started/">Guide</a>
 		<a href="/api/">API</a>
-		<a href="/protocol/">Protocol</a>
+		<a class="manual-nav-optional" href="/protocol/">Protocol</a>
 		<a href={repository}>Source</a>
 		<span class="manual-revision">Rev {packageManifest.version}</span>
 	</nav>
@@ -82,8 +82,7 @@ const repository = "https://github.com/volga-sh/ghostcall";
 	}
 
 	@media (max-width: 68rem) {
-		.manual-nav a:nth-of-type(2),
-		.manual-nav a:nth-of-type(4),
+		.manual-nav-optional,
 		.manual-revision {
 			display: none;
 		}

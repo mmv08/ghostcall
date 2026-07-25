@@ -4,7 +4,7 @@ description: Batch contract reads through one CREATE-style eth_call.
 template: splash
 hero:
   title: Batch reads through one eth_call
-  tagline: ghostcall combines contract reads into one eth_call without runtime dependencies.
+  tagline: ghostcall combines contract reads into one eth_call. The npm package has no runtime dependencies.
 head:
   - tag: title
     content: ghostcall — Batch reads through one eth_call
@@ -31,9 +31,8 @@ import PayloadFigure from "../../components/PayloadFigure.astro";
 npm install @volga-sh/evm-ghostcall viem
 ```
 
-`@volga-sh/evm-ghostcall` contains the batching SDK. viem supplies the provider
-and ABI helpers used in this manual; other EIP-1193 providers and ABI libraries
-remain compatible.
+Examples use viem for RPC requests and ABI encoding. Other EIP-1193 providers
+and ABI libraries also work.
 
 </ManualSection>
 
@@ -99,8 +98,8 @@ const [totalSupply, balance] = await aggregateDecodedCalls(client, [
 console.log({ totalSupply, balance });
 ```
 
-`totalSupply` and `balance` are inferred as `bigint`. The returned tuple follows
-the call order.
+`totalSupply` and `balance` are inferred as `bigint`. The tuple matches the call
+order.
 
 <p class="manual-follow-link">
 	<a href="/getting-started/">Getting started <span aria-hidden="true">→</span></a>
@@ -128,9 +127,6 @@ change is saved.
 </ManualSection>
 
 <ManualSection index="04" title="API index" id="api-index">
-
-The SDK exports four functions. Each function owns one part of the request or
-response flow.
 
 <ApiIndex />
 
