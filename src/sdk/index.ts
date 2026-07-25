@@ -3,7 +3,7 @@ import { ghostcallInitcode } from "./generated/initcode.ts";
 /**
  * Hex-encoded binary data prefixed with `0x`.
  *
- * Ghostcall request and response data is represented as raw hex strings. The
+ * ghostcall request and response data uses raw hex strings. The
  * SDK does not accept byte arrays or ABI fragments.
  */
 type Hex = `0x${string}`;
@@ -19,7 +19,7 @@ type HexQuantity = `0x${string}`;
 type GhostcallBlockReference = string | number | bigint;
 
 /**
- * One Ghostcall subcall entry.
+ * One ghostcall contract call.
  */
 type GhostcallCall = {
 	/**
@@ -28,52 +28,48 @@ type GhostcallCall = {
 	to: Hex;
 
 	/**
-	 * Hex-encoded call data to forward to {@link GhostcallCall.to}.
+	 * Hex-encoded calldata sent to {@link GhostcallCall.to}.
 	 *
-	 * The encoded payload is limited to `65535` bytes because Ghostcall stores each
+	 * Calldata is limited to `65,535` bytes because ghostcall stores each
 	 * calldata length as a big-endian `uint16`.
 	 */
 	data: Hex;
 };
 
 /**
- * One Ghostcall aggregate subcall entry.
+ * One call passed to {@link aggregateCalls}.
  *
- * The wire format does not include failure-policy bits. `allowFailure` is an SDK
- * policy applied after Ghostcall returns the packed result entries.
+ * `allowFailure` controls SDK behavior after ghostcall returns. It is not
+ * included in the bytes sent to the EVM.
  */
 type GhostcallAggregateCall = GhostcallCall & {
 	/**
 	 * Allows this subcall to return a failed result entry.
 	 *
-	 * Defaults to `false`, matching Multicall3's strict `aggregate3` behavior when
-	 * a call does not explicitly opt into failure.
+	 * Defaults to `false`.
 	 */
 	allowFailure?: boolean;
 };
 
 /**
- * One Ghostcall subcall entry for decoded aggregate results.
+ * One call passed to {@link aggregateDecodedCalls}.
  */
 type GhostcallDecodedCall<TResult = unknown> = GhostcallCall & {
 	/**
 	 * Decodes this call's successful return data.
 	 *
-	 * This is intentionally a caller-provided function so the SDK stays independent
-	 * from ABI libraries while still letting callers plug in helpers such as
-	 * `decodeFunctionResult` from viem or ox.
+	 * Use an ABI helper such as `decodeFunctionResult` from viem or ox, or
+	 * provide a custom decoder.
 	 */
 	decodeResult: GhostcallResultDecoder<TResult>;
 };
 
 /**
- * One successful Ghostcall result entry.
+ * One successful contract call result.
  */
 type GhostcallSuccessResult = {
 	/**
-	 * Indicates whether the underlying EVM `CALL` returned successfully.
-	 *
-	 * A `true` value means the target call returned successfully.
+	 * The target call completed successfully.
 	 */
 	success: true;
 
@@ -84,34 +80,29 @@ type GhostcallSuccessResult = {
 };
 
 /**
- * One failed Ghostcall result entry.
+ * One failed contract call result.
  */
 type GhostcallFailedResult = {
 	/**
-	 * Indicates whether the underlying EVM `CALL` returned successfully.
-	 *
-	 * A `false` value means the target call reverted or otherwise failed, but the
-	 * Ghostcall batch itself still completed successfully.
+	 * The target call reverted or failed.
 	 */
 	success: false;
 
 	/**
 	 * Raw return data produced by the target call.
 	 *
-	 * For failed calls this contains revert data, if any. The SDK leaves higher-level
-	 * ABI decoding and failure policy to the caller.
+	 * Contains revert data when the target returned any.
 	 */
 	returnData: Hex;
 };
 
 /**
- * One decoded Ghostcall result entry.
+ * One raw ghostcall result.
  */
 type GhostcallResult = GhostcallSuccessResult | GhostcallFailedResult;
 
 /**
- * Function used by {@link aggregateCalls} to turn raw successful return data into
- * a caller-chosen value.
+ * Function used by {@link aggregateDecodedCalls} to decode one successful result.
  */
 type GhostcallResultDecoder<TResult> = (
 	returnData: Hex,
@@ -120,7 +111,7 @@ type GhostcallResultDecoder<TResult> = (
 ) => TResult;
 
 /**
- * Error thrown when a strict Ghostcall batch encounters a failed subcall.
+ * Error thrown when a failed contract call is not allowed.
  */
 class GhostcallSubcallError extends Error {
 	readonly index: number;
@@ -206,27 +197,19 @@ const returnDataLengthMask = 0x7fff;
 const bundledInitcodeSize = byteLength(ghostcallInitcode);
 
 /**
- * Encodes a list of contract calls into the full CREATE-style `eth_call` payload
- * expected by Ghostcall.
+ * Builds the `data` value for a ghostcall `eth_call` request.
  *
- * The returned hex string already includes the bundled Ghostcall initcode followed
- * by the compact binary payload for each subcall, so callers can pass it directly
- * as the `data` field of an `eth_call` request without supplying a `to` address.
- * Each encoded subcall entry uses the compact layout `[len(2)][target(20)][data]`.
- * The bundled initcode assumes appended bytes follow this exact shape; this
- * function is the supported boundary for producing well-formed Ghostcall payloads.
+ * The result contains the bundled ghostcall program followed by every encoded
+ * call. Pass it as the `data` field of `eth_call` without a `to` address.
+ * Each call uses `[calldata length (2)][target (20)][calldata]`.
  *
- * @param calls - Ordered list of subcalls to execute. Each entry becomes one
- *                Ghostcall payload segment in the same order it appears here.
- * @param options - Optional encoding controls.
+ * @param calls - Contract calls in execution order.
+ * @param options - Request-size options.
  *
- * @returns Full CREATE payload consisting of the bundled Ghostcall initcode plus
- *          the encoded call list.
+ * @returns Complete ghostcall request data.
  *
- * @throws {TypeError} If any call address or calldata value is not valid hex.
- * @throws {RangeError} If any call data exceeds the protocol `uint16` length limit
- *                      or if the full encoded CREATE payload would exceed the
- *                      configured initcode size limit.
+ * @throws {TypeError} If an address, calldata value, or option is invalid.
+ * @throws {RangeError} If one call or the full request exceeds its size limit.
  *
  * @example
  * const data = encodeCalls([
@@ -286,33 +269,23 @@ function encodeCalls(
 }
 
 /**
- * Sends a Ghostcall batch with a CREATE-style `eth_call` and decodes the result.
+ * Sends a ghostcall batch and returns raw results.
  *
- * This is the provider-facing counterpart to {@link encodeCalls} and
- * {@link decodeResults}. It sends the bundled Ghostcall initcode as the `data`
- * field of `eth_call` without a `to` address, then returns raw result entries
- * in the same order as the input calls. Request bytes are built through
- * {@link encodeCalls}, so SDK callers get the supported payload validation before
- * the RPC request is sent.
+ * Results keep the same order as the calls. A failed call throws unless its
+ * entry sets `allowFailure: true`. Use {@link aggregateDecodedCalls} when every
+ * call must succeed and decoded values are needed. Use `options.ethCall` to set
+ * `from`, `gas`, or `blockTag` on the outer `eth_call`.
  *
- * By default, any failed subcall makes this method reject. Set
- * `allowFailure: true` on a call to receive that failed entry in the returned
- * results instead. Use {@link aggregateDecodedCalls} when you want a strict batch
- * that returns decoded values directly. Use `options.ethCall` to forward `from`,
- * `gas`, or `blockTag` to the outer `eth_call`.
+ * @param provider - Provider with an EIP-1193-compatible `request` method.
+ * @param calls - Contract calls in execution order.
+ * @param options - Request-size and outer `eth_call` options.
  *
- * @param provider - EIP-1193-compatible provider with a `request` method.
- * @param calls - Ordered list of subcalls to execute.
- * @param options - Optional outer call and initcode controls.
+ * @returns Raw results in call order.
  *
- * @returns Ordered Ghostcall result entries.
- *
- * @throws {TypeError} If inputs are not valid Ghostcall call entries or if the
- *                     provider returns a non-hex `eth_call` result.
- * @throws {RangeError} If the encoded CREATE payload exceeds protocol or the
- *                      configured CREATE initcode ceiling.
- * @throws {GhostcallSubcallError} If a subcall fails without `allowFailure: true`.
- * @throws {Error} If the response entry count does not match the request entry count.
+ * @throws {TypeError} If an input, option, or provider response is invalid.
+ * @throws {RangeError} If one call or the full request exceeds its size limit.
+ * @throws {GhostcallSubcallError} If a call fails without `allowFailure: true`.
+ * @throws {Error} If the response count does not match the call count.
  *
  * @example
  * const results = await aggregateCalls(provider, [
@@ -376,31 +349,23 @@ async function aggregateCalls(
 }
 
 /**
- * Sends a strict Ghostcall batch and decodes each successful result entry.
+ * Sends a ghostcall batch and decodes every result.
  *
- * This is the decoded counterpart to {@link aggregateCalls}. It sends the bundled
- * Ghostcall initcode as the `data` field of `eth_call` without a `to` address,
- * then runs each call's `decodeResult` callback over the successful return data in
- * the same order as the input calls.
+ * Each call supplies a `decodeResult` function. The returned tuple keeps call
+ * order and infers each value type from its decoder. Any failed call throws
+ * {@link GhostcallSubcallError}. Use {@link aggregateCalls} when a failed call
+ * should remain in the returned results.
  *
- * `aggregateDecodedCalls` is always strict. Its TypeScript input shape requires a
- * `decodeResult` callback on every call and does not accept `allowFailure`.
- * Any failed subcall rejects with {@link GhostcallSubcallError}. Use
- * {@link aggregateCalls} if you need raw failed entries. Use `options.ethCall`
- * to forward `from`, `gas`, or `blockTag` to the outer `eth_call`.
+ * @param provider - Provider with an EIP-1193-compatible `request` method.
+ * @param calls - Contract calls and their result decoders, in execution order.
+ * @param options - Request-size and outer `eth_call` options.
  *
- * @param provider - EIP-1193-compatible provider with a `request` method.
- * @param calls - Ordered list of strict decoded subcalls to execute.
- * @param options - Optional outer call and initcode controls.
+ * @returns Decoded values in call order.
  *
- * @returns Ordered list of decoded values.
- *
- * @throws {TypeError} If inputs are not valid Ghostcall call entries or if the
- *                     provider returns a non-hex `eth_call` result.
- * @throws {RangeError} If the encoded CREATE payload exceeds protocol or the
- *                      configured CREATE initcode ceiling.
- * @throws {GhostcallSubcallError} If any subcall fails.
- * @throws {Error} If the response entry count does not match the request entry count.
+ * @throws {TypeError} If an input, option, or provider response is invalid.
+ * @throws {RangeError} If one call or the full request exceeds its size limit.
+ * @throws {GhostcallSubcallError} If any call fails.
+ * @throws {Error} If the response count does not match the call count.
  *
  * @example
  * const erc20Abi = parseAbi([
@@ -438,21 +403,16 @@ async function aggregateDecodedCalls<
 }
 
 /**
- * Decodes the packed result blob returned by Ghostcall.
+ * Parses raw results returned by ghostcall.
  *
- * Each decoded entry corresponds to exactly one subcall in the original batch and
- * preserves the original ordering. The SDK intentionally returns raw result bytes
- * rather than ABI-decoding them so higher-level callers can apply their own
- * decoding and failure policy.
+ * The function returns success flags and raw return data in call order. It does
+ * not ABI-decode return data.
  *
- * @param data - Raw bytes returned by Ghostcall, typically the direct result of a
- *               CREATE-style `eth_call`.
+ * @param data - Raw hex returned by the outer `eth_call`.
  *
- * @returns Ordered list of decoded Ghostcall result entries. Returns an empty
- *          array for `0x`.
+ * @returns Raw results in call order. Returns an empty array for `0x`.
  *
- * @throws {TypeError} If the provided data is not valid hex, if a result header is
- *                     truncated, or if an entry body is shorter than advertised.
+ * @throws {TypeError} If data is invalid hex or contains an incomplete result.
  *
  * @example
  * const results = decodeResults("0x8002cafe0004deadbeef");

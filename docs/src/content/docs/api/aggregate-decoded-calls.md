@@ -1,64 +1,55 @@
 ---
 title: aggregateDecodedCalls
-description: Send a strict ghostcall batch and decode each successful result entry.
+description: Send a batch and decode every successful result.
 ---
 
-Sends one CREATE-style `eth_call` and returns decoded values in the same order as the input calls.
+`aggregateDecodedCalls()` sends one `eth_call` and returns one decoded value for
+each input call. Results keep the same order as the calls.
 
-Use this for the common app path: every subcall is expected to succeed, and each call provides a `decodeResult` callback. The SDK builds the request through `encodeCalls()`, so input validation happens before the RPC request is sent.
+Every call must succeed. If one fails, the function throws
+`GhostcallSubcallError`.
 
 ## Usage
 
 ```ts
 import { aggregateDecodedCalls } from "@volga-sh/evm-ghostcall";
 import {
-	createPublicClient,
 	decodeFunctionResult,
 	encodeFunctionData,
-	http,
 	parseAbi,
 } from "viem";
-import { mainnet } from "viem/chains";
 
-const erc20Abi = parseAbi([
-	"function balanceOf(address account) view returns (uint256)",
+const abi = parseAbi([
 	"function totalSupply() view returns (uint256)",
+	"function decimals() view returns (uint8)",
 ]);
-
-const client = createPublicClient({
-	chain: mainnet,
-	transport: http(),
-});
-
 const token = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-const owner = "0x28C6c06298d514Db089934071355E5743bf21d60";
 
-const [balance, totalSupply] = await aggregateDecodedCalls(client, [
+const [totalSupply, decimals] = await aggregateDecodedCalls(client, [
 	{
 		to: token,
 		data: encodeFunctionData({
-			abi: erc20Abi,
-			functionName: "balanceOf",
-			args: [owner],
+			abi,
+			functionName: "totalSupply",
 		}),
-		decodeResult: (returnData) =>
+		decodeResult: (data) =>
 			decodeFunctionResult({
-				abi: erc20Abi,
-				functionName: "balanceOf",
-				data: returnData,
+				abi,
+				functionName: "totalSupply",
+				data,
 			}),
 	},
 	{
 		to: token,
 		data: encodeFunctionData({
-			abi: erc20Abi,
-			functionName: "totalSupply",
+			abi,
+			functionName: "decimals",
 		}),
-		decodeResult: (returnData) =>
+		decodeResult: (data) =>
 			decodeFunctionResult({
-				abi: erc20Abi,
-				functionName: "totalSupply",
-				data: returnData,
+				abi,
+				functionName: "decimals",
+				data,
 			}),
 	},
 ]);
@@ -86,7 +77,8 @@ type EIP1193ProviderWithRequestFn = {
 };
 ```
 
-Provider used to send the outer `eth_call`. A viem public client works because it exposes a compatible `request` method.
+The provider that sends the outer `eth_call`. A viem public client has this
+`request` method.
 
 ### calls
 
@@ -104,14 +96,17 @@ type GhostcallResultDecoder<TResult> = (
 ) => TResult;
 ```
 
-Ordered subcalls to execute. Each call must include raw contract calldata and a decoder for successful return data.
+An ordered list of contract calls. `to` is the contract address, `data` is the
+contract calldata, and `decodeResult` turns successful return data into the
+required application value.
 
-`aggregateDecodedCalls()` is strict: `allowFailure` is not part of this input type.
+This call type does not accept `allowFailure`.
 
 ### options
 
 ```ts
-type GhostcallAggregateOptions = GhostcallEncodeOptions & {
+type GhostcallAggregateOptions = {
+	maxInitcodeBytes?: number;
 	ethCall?: {
 		from?: Hex;
 		gas?: HexQuantity;
@@ -120,7 +115,8 @@ type GhostcallAggregateOptions = GhostcallEncodeOptions & {
 };
 ```
 
-Optional CREATE initcode limit and outer `eth_call` controls. `blockTag` defaults to `"latest"`.
+`blockTag` defaults to `"latest"`. `maxInitcodeBytes` defaults to `49,152`, the
+Ethereum initcode limit.
 
 ## Returns
 
@@ -128,17 +124,17 @@ Optional CREATE initcode limit and outer `eth_call` controls. `blockTag` default
 Promise<GhostcallDecodedResults<TCalls>>
 ```
 
-A tuple of decoded values inferred from each call's `decodeResult` callback.
+A tuple whose value types come from the `decodeResult` functions.
 
 ## Throws
 
-- `TypeError` when inputs or the provider response are not valid hex.
-- `RangeError` when encoded call data or full CREATE initcode exceeds configured limits.
-- `GhostcallSubcallError` when any subcall fails.
-- `Error` when the response entry count does not match the request call count.
+- `TypeError` for invalid addresses, hex data, options, or provider responses.
+- `RangeError` when one call or the full request exceeds its size limit.
+- [`GhostcallSubcallError`](/api/subcall-error/) when any contract call fails.
+- `Error` when the response contains a different number of results than the
+  request.
 
-## Notes
+Provider and transport errors pass through unchanged.
 
-- The SDK sends `{ data }` without a `to` field so the RPC executes ghostcall as CREATE initcode.
-- Subcalls execute in order with ordinary `CALL`, not `STATICCALL`.
-- Use [`aggregateCalls()`](/api/aggregate-calls/) if you need raw failed entries.
+Use [`aggregateCalls()`](/api/aggregate-calls/) when a failed call should remain
+in the returned results.

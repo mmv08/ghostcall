@@ -1,11 +1,14 @@
 ---
 title: GhostcallSubcallError
-description: Error thrown when a strict SDK batch encounters a failed subcall.
+description: Inspect a contract call that caused a batch to throw.
 ---
 
-`GhostcallSubcallError` is thrown by strict SDK helpers when a subcall returns `success: false`.
+`GhostcallSubcallError` identifies a failed contract call when the SDK is
+configured to stop on failure.
 
-The protocol still completed successfully. The error preserves the failed result entry so callers can inspect raw revert data.
+- `aggregateDecodedCalls()` throws it for any failed call.
+- `aggregateCalls()` throws it when a failed call does not set
+  `allowFailure: true`.
 
 ## Usage
 
@@ -14,13 +17,6 @@ import {
 	aggregateCalls,
 	GhostcallSubcallError,
 } from "@volga-sh/evm-ghostcall";
-import { createPublicClient, http } from "viem";
-import { mainnet } from "viem/chains";
-
-const client = createPublicClient({
-	chain: mainnet,
-	transport: http(),
-});
 
 try {
 	await aggregateCalls(client, [
@@ -52,21 +48,24 @@ class GhostcallSubcallError extends Error {
 
 ### index
 
+The zero-based position of the failed call.
+
 ```ts
 number
 ```
 
-Zero-based index of the failed subcall.
-
 ### call
+
+The original call entry passed to the SDK.
 
 ```ts
 GhostcallAggregateCall
 ```
 
-The original call entry passed to the SDK.
-
 ### result
+
+The failed result and its raw return data. `returnData` contains revert data
+when the contract returned any.
 
 ```ts
 type GhostcallFailedResult = {
@@ -75,15 +74,8 @@ type GhostcallFailedResult = {
 };
 ```
 
-The raw failed result entry. `returnData` contains revert data when the target call returned any.
+This error means the outer ghostcall request completed and one inner contract
+call failed. Provider errors and request-size errors use their own error types.
 
-## Thrown by
-
-- [`aggregateDecodedCalls()`](/api/aggregate-decoded-calls/) for any failed subcall.
-- [`aggregateCalls()`](/api/aggregate-calls/) when a failed subcall does not set `allowFailure: true`.
-
-## Notes
-
-- `GhostcallSubcallError` means the SDK rejected due to failure policy.
-- Top-level RPC failures, per-entry return-size overflow, and provider errors are separate from this error.
-- Use `allowFailure: true` with `aggregateCalls()` when you want failed entries returned instead of thrown.
+Set `allowFailure: true` on an `aggregateCalls()` entry to return the failed
+result instead.

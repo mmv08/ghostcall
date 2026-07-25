@@ -1,24 +1,38 @@
 ---
 title: Development
-description: Build, test, and documentation commands for contributors working on ghostcall.
+description: Build, test, and update the ghostcall repository.
 ---
 
-Run commands from the repository root.
+This page is for contributors working in the ghostcall repository. Run all
+commands from the repository root.
 
-## Core commands
+## Install and check the project
 
 ```sh
 npm install
-npm run build:contracts
 npm run build:sdk
 npm run test
 npm run typecheck
 npm run check
 ```
 
-`build:contracts` compiles the Yul contract with Foundry and refreshes the generated SDK initcode. If `src/Ghostcall.yul` changes, regenerate `src/sdk/generated/initcode.ts` immediately through the build script.
+`build:sdk` compiles the Yul program, regenerates the bundled SDK initcode, and
+type-checks the SDK build.
 
-## Docs commands
+## Work on the Yul program
+
+```sh
+npm run build:contracts
+npm run check:sdk:initcode
+```
+
+`build:contracts` compiles `src/Ghostcall.yul` and regenerates
+`src/sdk/generated/initcode.ts`. Never edit the generated initcode file by hand.
+
+After a Yul change, run the full test suite. The integration tests start Anvil
+and exercise the compiled program on a real local EVM.
+
+## Work on the docs
 
 ```sh
 npm run docs:dev
@@ -26,19 +40,17 @@ npm run docs:build
 npm run docs:preview
 ```
 
-These root scripts proxy to the Starlight app in `docs/`. Source files live under `docs/src`, and the static build output goes to `docs/dist`.
+Documentation source files live in `docs/src`. The static build is written to
+`docs/dist`.
 
-## Project layout
+## Repository map
 
-- `src/Ghostcall.yul` is the protocol implementation and source of truth.
-- `src/sdk/index.ts` is the public TypeScript SDK surface.
-- `src/sdk/generated/initcode.ts` is generated and must not be hand-edited.
-- `scripts/generate-sdk-initcode.mjs` derives bundled initcode from the Foundry artifact.
-- `test/ghostcall.test.ts` covers real end-to-end protocol behavior against Anvil.
-- `test/sdk.test.ts` covers SDK encoding, decoding, validation, failure policy, and the bundled initcode size budget.
+- `src/Ghostcall.yul` contains the EVM program.
+- `src/sdk/index.ts` contains the public TypeScript API.
+- `scripts/generate-sdk-initcode.mjs` copies compiled initcode into the SDK.
+- `test/ghostcall.test.ts` tests program behavior against Anvil.
+- `test/sdk.test.ts` tests encoding, decoding, validation, and SDK failure
+  behavior.
 
-## Change discipline
-
-Keep Yul, generated initcode, SDK behavior, tests, and docs in lockstep. Public semantic changes should update tests and the docs website in the same change. Keep the README as a concise pointer to the website and core repository commands.
-
-Prefer direct protocol language over convenience abstractions. Ghostcall is meant to stay small, auditable, and clear about wire-format behavior.
+When public behavior changes, update the implementation, generated initcode,
+tests, API comments, README, and docs in the same pull request.

@@ -1,44 +1,109 @@
 ---
-title: ghostcall
-description: ghostcall batches EVM blockchain reads without deployment dependencies.
+title: Batch contract reads in one call
+description: Batch EVM contract reads without deploying a Multicall contract.
+template: splash
+hero:
+  title: Batch contract reads in one call
+  tagline: ghostcall sends many EVM calls through one eth_call. No deployed Multicall contract or fixed address required.
+  actions:
+    - text: Build a batch
+      link: /getting-started/
+      icon: right-arrow
+    - text: API reference
+      link: /api/
+      variant: secondary
+    - text: GitHub
+      link: https://github.com/volga-sh/ghostcall
+      variant: minimal
+      icon: external
 head:
   - tag: title
-    content: ghostcall docs
+    content: ghostcall — Batch contract reads in one call
   - tag: meta
     attrs:
       property: og:title
-      content: ghostcall docs
+      content: ghostcall — Batch contract reads in one call
   - tag: meta
     attrs:
       name: twitter:title
-      content: ghostcall docs
+      content: ghostcall — Batch contract reads in one call
 ---
 
-Batch EVM blockchain reads without deployment dependencies.
+## Install
 
 ```sh
-npm install @volga-sh/evm-ghostcall
+npm install @volga-sh/evm-ghostcall viem
 ```
+
+## Read two values
+
+This example reads the WETH total supply and one account balance on Ethereum.
+ghostcall sends both reads in one RPC request and returns decoded `bigint`
+values in the same order.
 
 ```ts
 import { aggregateDecodedCalls } from "@volga-sh/evm-ghostcall";
+import {
+	createPublicClient,
+	decodeFunctionResult,
+	encodeFunctionData,
+	http,
+	parseAbi,
+} from "viem";
+import { mainnet } from "viem/chains";
+
+const client = createPublicClient({
+	chain: mainnet,
+	transport: http(),
+});
+
+const abi = parseAbi([
+	"function totalSupply() view returns (uint256)",
+	"function balanceOf(address account) view returns (uint256)",
+]);
+const token = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+const account = "0x28C6c06298d514Db089934071355E5743bf21d60";
+
+const [totalSupply, balance] = await aggregateDecodedCalls(client, [
+	{
+		to: token,
+		data: encodeFunctionData({
+			abi,
+			functionName: "totalSupply",
+		}),
+		decodeResult: (data) =>
+			decodeFunctionResult({
+				abi,
+				functionName: "totalSupply",
+				data,
+			}),
+	},
+	{
+		to: token,
+		data: encodeFunctionData({
+			abi,
+			functionName: "balanceOf",
+			args: [account],
+		}),
+		decodeResult: (data) =>
+			decodeFunctionResult({
+				abi,
+				functionName: "balanceOf",
+				data,
+			}),
+	},
+]);
+
+console.log({ totalSupply, balance });
 ```
 
-`aggregateDecodedCalls()` is the fastest path for application code: pass an EIP-1193-style provider, raw call entries, and one `decodeResult` callback per call. Ghostcall sends one CREATE-style `eth_call`, preserves call order, and returns the decoded values as a typed tuple.
+## How it works
 
-Start with the [getting started guide](/getting-started/), jump into the [API reference](/api/), or browse the source on [GitHub](https://github.com/volga-sh/ghostcall).
+ghostcall adds the calls to a small Yul program and sends the combined bytes as
+an `eth_call` without a `to` address. The EVM runs the program, calls each target,
+and returns every result. Because `eth_call` only simulates execution, nothing is
+deployed and no state change is saved.
 
-The SDK is intentionally provider-agnostic and hex-oriented. Bring viem, ox, ethers, or your own ABI helpers for function encoding and result decoding.
-
-## What ghostcall provides
-
-- No deployed Multicall dependency.
-- A small TypeScript SDK for encoding, sending, and decoding batches.
-- Raw `0x` input and output boundaries, with ABI policy left to your app.
-- Explicit protocol, request-size, and result-size limits.
-
-## When it fits
-
-Use ghostcall when you want a small provider-agnostic batching primitive for read-only contract calls, especially when you do not want to depend on a specific deployed multicall address.
-
-Provider support is still an environment concern. Some RPC endpoints reject or special-case `eth_call` requests without a `to` field, so test the exact endpoint you plan to use.
+<p class="gc-next">
+	<a href="/getting-started/">Build a batch <span aria-hidden="true">→</span></a>
+</p>

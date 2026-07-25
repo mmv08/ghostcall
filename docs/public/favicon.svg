@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+	<title>ghostcall</title>
 	<rect width="64" height="64" rx="14" fill="#faf9f7" stroke="#e0ddd8" stroke-width="1" />
 	<path
 		d="M20 51V28a12 12 0 0 1 24 0v23l-4.8-4-4.8 4-4.8-4-4.8 4-4.8-4Z"

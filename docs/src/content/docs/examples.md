@@ -1,73 +1,12 @@
 ---
-title: Examples
-description: Common ghostcall SDK usage patterns for decoded batches, raw result entries, and direct RPC ownership.
+title: Recipes
+description: Copy-ready ghostcall patterns for failures, block options, and manual RPC requests.
 ---
 
-## Decoded ERC-20 reads
-
-Use `aggregateDecodedCalls()` when every call should succeed and you want decoded values back.
-
-```ts
-import { aggregateDecodedCalls } from "@volga-sh/evm-ghostcall";
-import {
-	createPublicClient,
-	decodeFunctionResult,
-	encodeFunctionData,
-	http,
-	parseAbi,
-} from "viem";
-import { mainnet } from "viem/chains";
-
-const erc20Abi = parseAbi([
-	"function balanceOf(address account) view returns (uint256)",
-	"function totalSupply() view returns (uint256)",
-]);
-
-const client = createPublicClient({
-	chain: mainnet,
-	transport: http(),
-});
-
-const token = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-const owner = "0x28C6c06298d514Db089934071355E5743bf21d60";
-
-const [balance, totalSupply] = await aggregateDecodedCalls(client, [
-	{
-		to: token,
-		data: encodeFunctionData({
-			abi: erc20Abi,
-			functionName: "balanceOf",
-			args: [owner],
-		}),
-		decodeResult: (returnData) =>
-			decodeFunctionResult({
-				abi: erc20Abi,
-				functionName: "balanceOf",
-				data: returnData,
-			}),
-	},
-	{
-		to: token,
-		data: encodeFunctionData({
-			abi: erc20Abi,
-			functionName: "totalSupply",
-		}),
-		decodeResult: (returnData) =>
-			decodeFunctionResult({
-				abi: erc20Abi,
-				functionName: "totalSupply",
-				data: returnData,
-			}),
-	},
-]);
-```
-
-## Allow one call to fail
-
-Use `aggregateCalls()` when you need raw entries or want to tolerate a failed subcall.
+These recipes cover cases beyond the first decoded batch. The snippets use a
+viem client:
 
 ```ts
-import { aggregateCalls } from "@volga-sh/evm-ghostcall";
 import { createPublicClient, http } from "viem";
 import { mainnet } from "viem/chains";
 
@@ -76,42 +15,85 @@ const client = createPublicClient({
 	transport: http(),
 });
 
+const weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+```
+
+## Allow one call to fail
+
+`aggregateCalls()` returns raw hex results. A failed call throws unless that
+entry sets `allowFailure: true`.
+
+```ts
+import { aggregateCalls } from "@volga-sh/evm-ghostcall";
+
 const results = await aggregateCalls(client, [
 	{
-		to: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+		// totalSupply()
+		to: weth,
 		data: "0x18160ddd",
 	},
 	{
-		to: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+		// Unknown function selector
+		to: weth,
 		data: "0xdeadbeef",
 		allowFailure: true,
 	},
 ]);
 
 for (const result of results) {
-	if (result.success) {
-		console.log("return data", result.returnData);
-	} else {
-		console.log("revert data", result.returnData);
-	}
+	console.log(result.success, result.returnData);
 }
 ```
 
-## Send the RPC request yourself
+The second entry remains in `results` with `success: false`. Its `returnData`
+contains revert data when the contract returned any.
 
-Use `encodeCalls()` and `decodeResults()` when you want direct control over transport, retries, or RPC payload construction.
+## Set the block, sender, and gas
+
+Pass outer `eth_call` options through `ethCall`. Numeric block values are sent as
+hex quantities.
+
+```ts
+import { aggregateCalls } from "@volga-sh/evm-ghostcall";
+
+const [result] = await aggregateCalls(
+	client,
+	[
+		{
+			// totalSupply()
+			to: weth,
+			data: "0x18160ddd",
+		},
+	],
+	{
+		ethCall: {
+			blockTag: 19_000_000n,
+			from: "0x0000000000000000000000000000000000000000",
+			gas: "0x2dc6c0",
+		},
+	},
+);
+```
+
+Omitted options use provider defaults. The block defaults to `"latest"`.
+
+## Send a raw RPC request
+
+Use `encodeCalls()` to build the request data and `decodeResults()` to parse the
+response.
 
 ```ts
 import { decodeResults, encodeCalls } from "@volga-sh/evm-ghostcall";
 
 const data = encodeCalls([
 	{
+		// WETH totalSupply()
 		to: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
 		data: "0x18160ddd",
 	},
 ]);
 
-const rpcResponse = await fetch("https://ethereum-rpc.publicnode.com", {
+const response = await fetch("https://ethereum-rpc.publicnode.com", {
 	method: "POST",
 	headers: { "content-type": "application/json" },
 	body: JSON.stringify({
@@ -122,7 +104,7 @@ const rpcResponse = await fetch("https://ethereum-rpc.publicnode.com", {
 	}),
 });
 
-const body = (await rpcResponse.json()) as {
+const body = (await response.json()) as {
 	error?: { message?: string };
 	result?: `0x${string}`;
 };
@@ -134,4 +116,10 @@ if (!body.result) {
 const results = decodeResults(body.result);
 ```
 
-The call object omits `to`; the supplied `data` is executed as CREATE initcode.
+The `eth_call` object has no `to` field. This tells the EVM to run `data` as
+contract creation code instead of calling an existing contract.
+
+## Next
+
+- [Compare the API functions](/api/).
+- [Read the protocol](/protocol/) for the request and response byte layouts.

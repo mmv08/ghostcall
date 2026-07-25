@@ -1,7 +1,7 @@
 {
 	"name": "@volga-sh/evm-ghostcall",
 	"version": "0.0.3",
-	"description": "Batch EVM blockchain reads without deployment dependencies.",
+	"description": "Batch EVM contract reads without deploying a Multicall contract.",
 	"license": "MIT",
 	"type": "module",
 	"repository": {

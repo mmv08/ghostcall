@@ -4,7 +4,7 @@ import { defineConfig } from "astro/config";
 const site = "https://ghostcall.volga.sh";
 const socialImage = new URL("/og.png", site).href;
 const socialImageAlt =
-	"ghostcall docs: Batch EVM blockchain reads without deployment dependencies.";
+	"ghostcall: Batch contract reads in one call without deploying Multicall.";
 
 export default defineConfig({
 	site,
@@ -12,7 +12,7 @@ export default defineConfig({
 		starlight({
 			title: "ghostcall",
 			description:
-				"Batch EVM blockchain reads without deployment dependencies.",
+				"Batch EVM contract reads without deploying a Multicall contract.",
 			head: [
 				{
 					tag: "meta",
@@ -70,14 +70,14 @@ export default defineConfig({
 			],
 			sidebar: [
 				{
-					label: "Start Here",
+					label: "Guides",
 					items: [
 						{ label: "Getting Started", slug: "getting-started" },
-						{ label: "Examples", slug: "examples" },
+						{ label: "Recipes", slug: "examples" },
 					],
 				},
 				{
-					label: "API Reference",
+					label: "API",
 					items: [
 						{ label: "Overview", slug: "api" },
 						{
@@ -92,14 +92,14 @@ export default defineConfig({
 					],
 				},
 				{
-					label: "Concepts",
+					label: "How It Works",
 					items: [
 						{ label: "Protocol", slug: "protocol" },
 						{ label: "Limits", slug: "limits" },
 					],
 				},
 				{
-					label: "Project",
+					label: "Contribute",
 					items: [{ label: "Development", slug: "development" }],
 				},
 			],

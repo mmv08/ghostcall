@@ -1,11 +1,12 @@
 ---
 title: encodeCalls
-description: Encode ghostcall entries into the full CREATE-style eth_call payload.
+description: Build the data for a ghostcall eth_call request.
 ---
 
-Builds the complete request `data` field for a CREATE-style `eth_call`.
+`encodeCalls()` combines the ghostcall program and a call list into one hex
+value. Send that value as the `data` field of `eth_call` without a `to` address.
 
-Use this when you want to own the RPC request yourself. It is also the supported boundary for producing well-formed ghostcall payloads; callers who hand-build raw payload bytes must follow the wire format exactly.
+Use this function when the application sends the RPC request directly.
 
 ## Usage
 
@@ -14,13 +15,13 @@ import { encodeCalls } from "@volga-sh/evm-ghostcall";
 
 const data = encodeCalls([
 	{
-		// WETH9 on Ethereum mainnet: totalSupply()
+		// WETH totalSupply()
 		to: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
 		data: "0x18160ddd",
 	},
 ]);
 
-const rpcResponse = await fetch("https://ethereum-rpc.publicnode.com", {
+const response = await fetch("https://ethereum-rpc.publicnode.com", {
 	method: "POST",
 	headers: { "content-type": "application/json" },
 	body: JSON.stringify({
@@ -30,17 +31,6 @@ const rpcResponse = await fetch("https://ethereum-rpc.publicnode.com", {
 		params: [{ data }, "latest"],
 	}),
 });
-
-const body = (await rpcResponse.json()) as {
-	error?: { message?: string };
-	result?: `0x${string}`;
-};
-
-if (!body.result) {
-	throw new Error(body.error?.message ?? "eth_call returned no result");
-}
-
-const response = body.result;
 ```
 
 ## Signature
@@ -63,9 +53,10 @@ type GhostcallCall = {
 };
 ```
 
-Ordered subcalls to encode. `to` must be a 20-byte address and `data` must be even-length `0x` hex.
+An ordered list of contract addresses and calldata. Each `to` value must be a
+20-byte address. Each `data` value must be even-length hex with a `0x` prefix.
 
-Each entry is encoded as:
+One call is encoded as:
 
 ```text
 2 bytes calldata length
@@ -81,7 +72,7 @@ type GhostcallEncodeOptions = {
 };
 ```
 
-Maximum allowed size of the full CREATE initcode payload in bytes. Defaults to `49,152`.
+The maximum full request size in bytes. The default is `49,152`.
 
 ## Returns
 
@@ -89,24 +80,18 @@ Maximum allowed size of the full CREATE initcode payload in bytes. Defaults to `
 Hex
 ```
 
-Full CREATE payload:
+The complete request data:
 
 ```text
-<bundled ghostcall initcode><encoded call entries>
+<ghostcall program><encoded calls>
 ```
-
-Pass the returned value as the `data` field of `eth_call` without a `to` address.
 
 ## Throws
 
-- `TypeError` when `to` or `data` is not valid hex, or when `to` is not exactly 20 bytes.
-- `TypeError` when `options.maxInitcodeBytes` is not a non-negative safe integer.
-- `RangeError` when a call's `data` exceeds `65,535` bytes.
-- `RangeError` when the bundled initcode plus encoded calls exceeds `maxInitcodeBytes`.
+- `TypeError` for an invalid address, hex value, or `maxInitcodeBytes`.
+- `RangeError` when one call contains more than `65,535` bytes of calldata.
+- `RangeError` when the complete request exceeds `maxInitcodeBytes`.
 
-## Notes
+An empty call list is valid and returns only the ghostcall program.
 
-- An empty call list is valid and encodes just the bundled ghostcall initcode.
-- The input format has no count field. The Yul program advances through appended entries until it reaches the end of the initcode payload.
-- `encodeCalls()` performs the input validation that the optimized initcode intentionally does not duplicate.
-- Use [`decodeResults()`](/api/decode-results/) to parse the returned blob.
+Pass the RPC response to [`decodeResults()`](/api/decode-results/).
