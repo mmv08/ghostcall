@@ -1,9 +1,25 @@
 ---
 title: API Reference
-description: Public TypeScript SDK functions, errors, and types exported by ghostcall.
+description: Choose a ghostcall function based on the required result.
 ---
 
-The SDK exposes a small protocol-first surface. Start with `aggregateDecodedCalls()` for strict decoded reads, then drop lower only when you need raw result entries or direct RPC control.
+ghostcall exports four functions, one error class, and their TypeScript types.
+
+## Choose a function
+
+| Goal | Function |
+| --- | --- |
+| Send calls and decode every result | [`aggregateDecodedCalls()`](/api/aggregate-decoded-calls/) |
+| Send calls and inspect raw success or failure results | [`aggregateCalls()`](/api/aggregate-calls/) |
+| Build request data without sending it | [`encodeCalls()`](/api/encode-calls/) |
+| Parse a manually sent response | [`decodeResults()`](/api/decode-results/) |
+
+Start with `aggregateDecodedCalls()` for normal application reads. Use
+`aggregateCalls()` when some calls may fail or raw return data is needed.
+The encoding and decoding functions are for callers that send their own RPC
+requests.
+
+## Exports
 
 ```ts
 import {
@@ -15,17 +31,13 @@ import {
 } from "@volga-sh/evm-ghostcall";
 ```
 
-## Functions
+[`GhostcallSubcallError`](/api/subcall-error/) identifies the failed call when a
+batch is configured to stop on failure.
 
-- [`aggregateDecodedCalls()`](/api/aggregate-decoded-calls/) sends a strict batch and returns decoded values.
-- [`aggregateCalls()`](/api/aggregate-calls/) sends a batch and returns raw `{ success, returnData }` entries.
-- [`encodeCalls()`](/api/encode-calls/) encodes call entries into the full CREATE-style `eth_call` payload.
-- [`decodeResults()`](/api/decode-results/) decodes the packed result blob returned by ghostcall.
+See [Types](/api/types/) for the shared input, result, option, and provider
+types.
 
-## Error
+## Next
 
-- [`GhostcallSubcallError`](/api/subcall-error/) is thrown when a strict SDK batch encounters a failed subcall.
-
-## Types
-
-The reference pages inline the most relevant input and output types. See [Types](/api/types/) for the compact shared type catalog.
+- Open the function page that matches the task.
+- Read [Limits](/limits/) before building unusually large batches.

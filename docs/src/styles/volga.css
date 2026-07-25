@@ -317,3 +317,46 @@ h1#_top {
 .sl-markdown-content :is(th, td):not(:where(.not-content *)) {
 	border-bottom-color: var(--gc-rule);
 }
+
+[data-has-hero] .hero h1 {
+	font-family: "DM Serif Display", Georgia, serif;
+	font-weight: 400;
+}
+
+[data-has-hero] .hero .tagline {
+	max-width: 42rem;
+	font-weight: 300;
+}
+
+[data-has-hero] .hero .actions a {
+	border-radius: 0.35rem;
+}
+
+[data-has-hero] .content-panel {
+	max-width: 74rem;
+	margin-inline: auto;
+}
+
+[data-has-hero] .sl-markdown-content > h2 {
+	margin-top: 3.5rem;
+}
+
+.gc-next {
+	margin-top: 2.5rem;
+}
+
+.gc-next a {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.6rem;
+	border: 1px solid var(--gc-accent);
+	border-radius: 0.35rem;
+	padding: 0.7rem 1rem;
+	background: var(--gc-accent);
+	color: var(--gc-bg);
+	font-weight: 500;
+}
+
+.gc-next a:hover {
+	background: color-mix(in srgb, var(--gc-accent) 84%, var(--gc-fg));
+}

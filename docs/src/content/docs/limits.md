@@ -1,47 +1,67 @@
 ---
 title: Limits
-description: Initcode, calldata, returndata, and provider limits that affect ghostcall batches.
+description: Size limits for ghostcall calls, requests, and responses.
 ---
 
-Ghostcall has both protocol-level limits and environment-level limits. Treat them as hard constraints when building batches.
+Check these limits when building large batches. A chain or RPC provider may set
+a lower limit than the protocol.
 
-## Per-call calldata
+## Calldata per call
 
-Each input entry stores calldata length as a big-endian `uint16`, so a single subcall can include at most `65,535` bytes of calldata.
+Each call stores its calldata length in two bytes. One call can contain at most
+`65,535` bytes of calldata.
 
-`encodeCalls()` enforces this limit before sending an RPC request.
+`encodeCalls()` rejects larger values before sending an RPC request.
 
-## CREATE initcode
+## Full request
 
-The full request data is CREATE initcode:
+The request data contains the ghostcall program and every encoded call:
 
 ```text
-<bundled ghostcall initcode><payload>
+<ghostcall program><encoded calls>
 ```
 
-On Ethereum, EIP-3860 caps initcode at `49,152` bytes. Other chains may differ. RPC providers may also apply their own lower request-size limits.
+Ethereum limits contract creation code to `49,152` bytes under EIP-3860. Other
+chains may use another limit, and RPC providers may reject smaller requests.
 
-The bundled ghostcall initcode is currently `91` bytes. That byte budget is pinned by the SDK tests so accidental size regressions are visible.
+The bundled ghostcall program is currently `91` bytes. SDK tests pin that size
+so a change is reviewed deliberately.
 
-`encodeCalls()` rejects batches whose encoded CREATE payload exceeds the SDK's configured initcode ceiling. If you do not pass `maxInitcodeBytes`, it defaults to Ethereum's `49,152`-byte EIP-3860 limit.
+`encodeCalls()` uses `49,152` as its default limit. Pass `maxInitcodeBytes` to
+set a different ceiling:
 
-## Return data
+```ts
+const data = encodeCalls(calls, {
+	maxInitcodeBytes: 32_000,
+});
+```
 
-Each result entry stores returndata length in 15 bits, so a single packed result entry can represent at most `32,767` bytes of returndata.
+## Return data per call
 
-On Ethereum, EIP-170's returned-code limit is usually stricter: CREATE-style execution returns would-be runtime bytecode, so the aggregate response is commonly capped at `24,576` bytes including the 2-byte header for every entry.
+Each result stores its return-data length in 15 bits. One result can contain at
+most `32,767` bytes.
 
-Provider behavior can be more restrictive than chain consensus limits. Measure the actual endpoint you plan to use.
+The ghostcall program reverts with empty data when a call exceeds this limit.
 
-## Benchmarking an endpoint
+## Full response
 
-The repository includes a rough probing script:
+Ethereum normally limits returned contract code to `24,576` bytes under
+EIP-170. A CREATE-style `eth_call` treats the ghostcall response as would-be
+contract code, so this limit often applies to the full response, including the
+two-byte header for every result.
+
+Other chains and RPC providers may accept more or less. Test the application's
+endpoint.
+
+## Test an endpoint
+
+The repository includes a script that probes request and response limits:
 
 ```sh
 npm run benchmark:limits -- --rpc-url "$RPC_URL" --mode raw
 ```
 
-`raw` mode probes accepted CREATE initcode bytes and returned runtime-code bytes. `balances` mode uses a realistic ERC-20 balance workload:
+Test a realistic ERC-20 balance workload with:
 
 ```sh
 npm run benchmark:limits -- \
@@ -51,9 +71,10 @@ npm run benchmark:limits -- \
   --owner "$OWNER_ADDRESS"
 ```
 
-Useful options include:
+Run the script with `--help` to see block, sender, gas, timeout, search ceiling,
+and JSON output options.
 
-- `--mode raw|balances|all`
-- `--block`, `--from`, `--gas`, and `--timeout-ms`
-- `--max-calls`, `--max-initcode-bytes`, and `--max-runtime-bytes`
-- `--json`
+## Next
+
+- Use [`encodeCalls()`](/api/encode-calls/) to set the request-size ceiling.
+- Read the [Protocol](/protocol/) for the length fields behind these limits.

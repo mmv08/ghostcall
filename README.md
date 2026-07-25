@@ -1,12 +1,11 @@
 # ghostcall
 
-`ghostcall` batches EVM blockchain reads without deployment dependencies.
+`ghostcall` batches EVM contract reads without deploying a Multicall contract.
 
 ## Documentation
 
-The docs live at [ghostcall.volga.sh](https://ghostcall.volga.sh).
-
-Start there for installation, examples, the API reference, protocol details, and endpoint limit notes.
+Start at [ghostcall.volga.sh](https://ghostcall.volga.sh) for the setup guide,
+recipes, API reference, protocol, and size limits.
 
 ## Install
 
@@ -14,9 +13,13 @@ Start there for installation, examples, the API reference, protocol details, and
 npm install @volga-sh/evm-ghostcall
 ```
 
-## Quick Start
+## Quick start
 
-This example uses viem for the EIP-1193-compatible client and ABI helpers. Install it with `npm install viem` if your app does not already use it.
+This example uses viem for its client and ABI helpers:
+
+```sh
+npm install viem
+```
 
 ```ts
 import { aggregateDecodedCalls } from "@volga-sh/evm-ghostcall";
@@ -34,35 +37,38 @@ const client = createPublicClient({
 	transport: http(),
 });
 
-const erc20Abi = parseAbi(["function totalSupply() view returns (uint256)"]);
+const abi = parseAbi(["function totalSupply() view returns (uint256)"]);
+const token = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 
 const [totalSupply] = await aggregateDecodedCalls(client, [
 	{
-		to: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+		to: token,
 		data: encodeFunctionData({
-			abi: erc20Abi,
+			abi,
 			functionName: "totalSupply",
 		}),
-		decodeResult: (returnData) =>
+		decodeResult: (data) =>
 			decodeFunctionResult({
-				abi: erc20Abi,
+				abi,
 				functionName: "totalSupply",
-				data: returnData,
+				data,
 			}),
 	},
 ]);
 ```
 
-See the [Getting Started guide](https://ghostcall.volga.sh/getting-started/) for a complete viem example with ABI encoding and decoding.
+See [Getting Started](https://ghostcall.volga.sh/getting-started/) for a complete
+two-call walkthrough.
 
 ## API
 
-- `aggregateDecodedCalls()` sends a strict batch and returns decoded values.
-- `aggregateCalls()` sends a batch and returns raw `{ success, returnData }` entries.
-- `encodeCalls()` builds the CREATE-style `eth_call` data payload.
-- `decodeResults()` parses the packed ghostcall response.
+- `aggregateDecodedCalls()` sends calls and returns decoded values.
+- `aggregateCalls()` sends calls and returns raw success or failure results.
+- `encodeCalls()` builds request data for an `eth_call` without `to`.
+- `decodeResults()` parses a raw ghostcall response.
 
-Full reference: [API docs](https://ghostcall.volga.sh/api/).
+Read the [API reference](https://ghostcall.volga.sh/api/) for signatures,
+options, return types, and errors.
 
 ## Development
 
@@ -73,11 +79,12 @@ npm run test
 npm run check
 ```
 
-Docs are built with Astro Starlight:
+To work on the documentation:
 
 ```sh
 npm run docs:dev
 npm run docs:build
 ```
 
-The repository is hosted at [github.com/volga-sh/ghostcall](https://github.com/volga-sh/ghostcall).
+The source is hosted at
+[github.com/volga-sh/ghostcall](https://github.com/volga-sh/ghostcall).

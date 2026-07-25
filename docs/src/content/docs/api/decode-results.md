@@ -1,11 +1,11 @@
 ---
 title: decodeResults
-description: Decode the packed result blob returned by ghostcall.
+description: Parse the raw response returned by ghostcall.
 ---
 
-Parses the binary response returned by the ghostcall initcode into raw result entries.
-
-Use this with [`encodeCalls()`](/api/encode-calls/) when you send the RPC request directly.
+`decodeResults()` turns the hex response from ghostcall into ordered success or
+failure results. Use it after a request built with
+[`encodeCalls()`](/api/encode-calls/).
 
 ## Usage
 
@@ -35,29 +35,19 @@ function decodeResults(data: Hex): GhostcallResult[];
 type Hex = `0x${string}`;
 ```
 
-Raw bytes returned by ghostcall, typically the direct result of a CREATE-style `eth_call`.
+The raw hex returned by the outer `eth_call`.
 
-Each result entry is encoded as:
-
-```text
-2 bytes packed header
-N bytes returndata
-```
-
-The header layout is:
+Each result contains a two-byte header followed by return data:
 
 ```text
-bit 15    success flag
-bits 0-14 returndata length
+2 bytes header
+N bytes return data
 ```
+
+The first header bit records success. The remaining 15 bits record the return
+data length.
 
 ## Returns
-
-```ts
-GhostcallResult[]
-```
-
-Ordered decoded entries.
 
 ```ts
 type GhostcallResult =
@@ -65,16 +55,13 @@ type GhostcallResult =
 	| { success: false; returnData: Hex };
 ```
 
-`decodeResults("0x")` returns an empty array.
+The array keeps the original call order. `decodeResults("0x")` returns an empty
+array.
 
 ## Throws
 
-- `TypeError` when `data` is not valid even-length `0x` hex.
-- `TypeError` when a result header is truncated.
-- `TypeError` when a result body is shorter than the length declared in its header.
+- `TypeError` when `data` is not even-length hex with a `0x` prefix.
+- `TypeError` when the response ends before a complete header or result body.
 
-## Notes
-
-- Failed subcalls are ordinary result entries with `success: false`.
-- ABI decoding is caller-owned. Pass `returnData` to viem, ox, ethers, or your own decoder.
-- `decodeResults()` only parses the response shape; it does not know how many calls were originally requested.
+This function does not ABI-decode `returnData` and does not know how many calls
+were sent. Applications can pass successful return data to an ABI library.

@@ -1,27 +1,20 @@
 ---
 title: aggregateCalls
-description: Send a ghostcall batch and return raw success or failure result entries.
+description: Send a batch and return raw success or failure results.
 ---
 
-Sends one CREATE-style `eth_call` and returns raw result entries in request order.
-
-Use this when you need `success` flags, revert data, or per-call `allowFailure`. The SDK builds the request through `encodeCalls()`, so input validation happens before the RPC request is sent.
+`aggregateCalls()` sends one `eth_call` and returns raw results in call order.
+Use it when success flags, revert data, or permission for selected
+calls to fail.
 
 ## Usage
 
 ```ts
 import { aggregateCalls } from "@volga-sh/evm-ghostcall";
-import { createPublicClient, http } from "viem";
-import { mainnet } from "viem/chains";
-
-const client = createPublicClient({
-	chain: mainnet,
-	transport: http(),
-});
 
 const results = await aggregateCalls(client, [
 	{
-		// WETH9 on Ethereum mainnet: totalSupply()
+		// WETH totalSupply()
 		to: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
 		data: "0x18160ddd",
 	},
@@ -53,7 +46,7 @@ type EIP1193ProviderWithRequestFn = {
 };
 ```
 
-Provider used to send the outer `eth_call`.
+The provider that sends the outer `eth_call`.
 
 ### calls
 
@@ -65,9 +58,11 @@ type GhostcallAggregateCall = {
 };
 ```
 
-Ordered subcalls to execute.
+An ordered list of contract calls. Set `allowFailure: true` when that entry
+should be returned with `success: false` instead of throwing an error.
 
-`allowFailure` is SDK-side policy. It is not encoded into the ghostcall wire format. If a subcall fails and `allowFailure` is not `true`, the SDK throws `GhostcallSubcallError`.
+`allowFailure` controls SDK behavior after the response arrives. It is not part
+of the bytes sent to the EVM.
 
 ### options
 
@@ -82,15 +77,10 @@ type GhostcallAggregateOptions = {
 };
 ```
 
-`maxInitcodeBytes` defaults to Ethereum's EIP-3860 limit of `49,152` bytes. `ethCall` values are forwarded to the outer RPC request.
+`blockTag` defaults to `"latest"`. Decimal block numbers are converted to RPC
+hex quantities. `maxInitcodeBytes` defaults to `49,152`.
 
 ## Returns
-
-```ts
-Promise<GhostcallResult[]>
-```
-
-Raw entries in the same order as the input calls.
 
 ```ts
 type GhostcallResult =
@@ -98,17 +88,18 @@ type GhostcallResult =
 	| { success: false; returnData: Hex };
 ```
 
+The promise resolves to one result per call, in the same order.
+
 ## Throws
 
-- `TypeError` when inputs or the provider response are not valid hex.
-- `RangeError` when encoded call data or full CREATE initcode exceeds configured limits.
-- `GhostcallSubcallError` when a subcall fails without `allowFailure: true`.
-- `Error` when the response entry count does not match the request call count.
+- `TypeError` for invalid addresses, hex data, options, or provider responses.
+- `RangeError` when one call or the full request exceeds its size limit.
+- [`GhostcallSubcallError`](/api/subcall-error/) when a call fails without
+  `allowFailure: true`.
+- `Error` when the response contains a different number of results than the
+  request.
 
-Provider and transport errors bubble from `provider.request()`.
+Provider and transport errors pass through unchanged.
 
-## Notes
-
-- The request is sent as `eth_call` with `{ data }` and no `to`.
-- `blockTag` accepts named tags, hex quantities, decimal strings, numbers, or bigints. Decimal inputs are normalized to hex quantities.
-- Use [`aggregateDecodedCalls()`](/api/aggregate-decoded-calls/) when you want decoded values directly.
+Use [`aggregateDecodedCalls()`](/api/aggregate-decoded-calls/) when every call
+must succeed and decoded values are needed.

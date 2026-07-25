@@ -1,80 +1,99 @@
 ---
 title: Protocol
-description: CREATE-style execution, input payload layout, output result layout, and top-level failure behavior.
+description: How ghostcall runs a batch and packs its request and response bytes.
 ---
 
-`src/Ghostcall.yul` is the source of truth for protocol behavior. The bundled TypeScript initcode is generated from the Foundry artifact and should not be edited directly.
+This page defines the bytes sent to ghostcall and the bytes it returns. Most SDK
+users do not need to build these bytes themselves.
 
-## CREATE-style eth_call
+## Contract creation through eth_call
 
-An `eth_call` request with a `data` field and no `to` field executes the supplied bytes as CREATE initcode. Ghostcall uses that behavior without deploying anything:
+An `eth_call` normally includes a `to` address. Without `to`, the EVM treats the
+`data` as contract creation code, also called initcode:
 
 ```json
 {
 	"method": "eth_call",
-	"params": [{ "data": "0x<ghostcall initcode><payload>" }, "latest"]
+	"params": [{ "data": "0x<ghostcall program><calls>" }, "latest"]
 }
 ```
 
-The initcode reads caller-appended bytes from its own code using `CODECOPY`, executes each subcall with zero value, and returns a packed result blob.
+ghostcall uses that creation step as a one-time program. It reads the call
+entries attached to its own code, runs them, and returns their results. The RPC
+request only simulates execution, so no contract is deployed and no state
+change is saved.
 
-Subcalls use ordinary `CALL`, not `STATICCALL`. That means they execute from ghostcall's ephemeral CREATE context, and later subcalls in the same batch can observe state changes made by earlier subcalls during that one simulated execution. Each subcall also receives all remaining gas at the moment it runs, so batch order affects both state visibility and gas availability.
+Some RPC endpoints reject `eth_call` without a `to` address. Test the endpoint
+used by the application.
 
-Provider support is still an environment concern: some RPC endpoints reject or special-case `eth_call` requests that omit `to` and rely on CREATE-style execution.
+## Call execution
 
-## Input payload
+Subcalls run in order with the EVM `CALL` instruction and zero value.
 
-The caller sends:
+`CALL` is not the same as `STATICCALL`: a target can change state during the
+simulation, and a later call in the same batch can observe that change. No
+change remains after `eth_call` ends.
+
+Each call receives the gas left when it starts. Earlier calls therefore affect
+the gas available to later calls.
+
+## Request bytes
+
+The request contains the compiled ghostcall program followed by call entries:
 
 ```text
-<compiled ghostcall initcode><payload>
+<compiled ghostcall program><call><call>...
 ```
 
-The payload is a repeated list of call entries:
+Each call has:
 
 ```text
 2 bytes calldata length (big-endian uint16)
-20 bytes target
+20 bytes target address
 N bytes calldata
 ```
 
-There is no separate count field. The program advances through the appended payload until its cursor reaches the end of code. SDK-generated payloads are validated before the RPC request is sent; raw hand-built payloads must follow the wire format exactly. Malformed raw payload behavior is unspecified.
+There is no call count. The program reads entries until it reaches the end of
+the request data.
 
-The length comes first so the Yul program can copy the 22-byte fixed header to the current memory write pointer. One `mload` exposes the length in the high two bytes and the target shifted above the trailing scratch bytes.
+`encodeCalls()` checks addresses, hex strings, calldata lengths, and the full
+request size. Manually built bytes must follow the same layout. Results from
+malformed hand-built requests are not defined.
 
-## Implementation notes
+## Response bytes
 
-The bundled initcode is optimized for size, so it keeps only the checks that cannot be moved to the SDK boundary.
-
-- The output buffer starts at memory offset `0x00`, avoiding a fixed return offset and final subtraction.
-- The current output write pointer is reused as scratch for the next input header before the result entry is finalized.
-- The initcode does not revalidate SDK-owned input invariants such as address shape, hex shape, calldata length encoding, or truncated raw payloads.
-- The per-entry returndata length check stays in Yul because returndata size is only known after `CALL` returns.
-
-## Output payload
-
-The program returns a repeated list of result entries:
+The response contains one entry per call:
 
 ```text
-2 bytes packed header
-N bytes returndata
+2 bytes header
+N bytes return data
 ```
 
-The header layout is:
+The header uses:
 
 ```text
-bit 15    success flag
-bits 0-14 returndata length (big-endian uint15)
+bit 15    call success
+bits 0-14 return data length (big-endian uint15)
 ```
 
-Subcall failures are returned inline with `success = 0` and the revert data, if any. The protocol still returns one entry per input call unless the top-level ghostcall program itself fails.
+A reverted call is still a response entry. Its success bit is `0`, and its
+return data contains the revert data when available.
 
-## Top-level reverts
+## Whole-request failure
 
-Ghostcall intentionally fails closed for per-entry return-size overflow. These top-level reverts are empty.
+The ghostcall program reverts with empty data if one call returns more than
+`32,767` bytes. This check must happen in the program because return size is not
+known before execution.
 
-Expected top-level failure cases include:
+Rules about whether an ordinary failed call should throw are applied later by
+the SDK:
 
-- A subcall returning more bytes than the packed result entry can represent.
+- `aggregateDecodedCalls()` throws for every failed call.
+- `aggregateCalls()` throws unless the entry sets `allowFailure: true`.
+- `decodeResults()` returns the success bit without applying a failure rule.
 
-Higher-level batch failure policy is SDK behavior, not Yul protocol behavior.
+## Next
+
+- See [Limits](/limits/) for request and response ceilings.
+- See [`encodeCalls()`](/api/encode-calls/) and
+  [`decodeResults()`](/api/decode-results/) to work with the byte format.

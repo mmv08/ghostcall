@@ -1,20 +1,21 @@
 ---
 title: Types
-description: Compact catalog of shared TypeScript types exported by ghostcall.
+description: TypeScript types exported by ghostcall.
 ---
 
-Ghostcall types are hex-oriented and intentionally close to the wire format.
+This page lists the shared types used by the SDK functions.
 
-## Hex
+## Hex values
 
 ```ts
 type Hex = `0x${string}`;
 type HexQuantity = `0x${string}`;
 ```
 
-SDK boundary functions validate that hex strings have a `0x` prefix, even-length bodies, and only hexadecimal characters.
+SDK functions check that hex strings have a `0x` prefix, an even number of
+characters, and only hexadecimal digits.
 
-`HexQuantity` is used for RPC quantities such as `options.ethCall.gas`.
+`HexQuantity` is used for RPC values such as `ethCall.gas`.
 
 ## Calls
 
@@ -25,7 +26,8 @@ type GhostcallCall = {
 };
 ```
 
-Base subcall entry. `to` is a 20-byte address and `data` is raw contract calldata.
+The base call type. `to` is a 20-byte contract address and `data` is contract
+calldata.
 
 ```ts
 type GhostcallAggregateCall = GhostcallCall & {
@@ -33,7 +35,8 @@ type GhostcallAggregateCall = GhostcallCall & {
 };
 ```
 
-Raw aggregate subcall entry. `allowFailure` is SDK-side policy applied after the packed response is decoded.
+The input for `aggregateCalls()`. `allowFailure` controls whether a failed entry
+is returned or throws.
 
 ```ts
 type GhostcallDecodedCall<TResult = unknown> = GhostcallCall & {
@@ -41,7 +44,8 @@ type GhostcallDecodedCall<TResult = unknown> = GhostcallCall & {
 };
 ```
 
-Strict decoded subcall entry. Every decoded call must provide a result decoder.
+The input for `aggregateDecodedCalls()`. Every entry supplies its own result
+decoder.
 
 ## Results
 
@@ -59,7 +63,7 @@ type GhostcallFailedResult = {
 type GhostcallResult = GhostcallSuccessResult | GhostcallFailedResult;
 ```
 
-The result order matches the request order.
+Result order matches call order.
 
 ```ts
 type GhostcallResultDecoder<TResult> = (
@@ -69,7 +73,7 @@ type GhostcallResultDecoder<TResult> = (
 ) => TResult;
 ```
 
-Decoder callback used by `aggregateDecodedCalls()`.
+The decoder used by `aggregateDecodedCalls()`.
 
 ```ts
 type GhostcallDecodedResults<TCalls extends readonly GhostcallDecodedCall[]> = {
@@ -81,7 +85,7 @@ type GhostcallDecodedResults<TCalls extends readonly GhostcallDecodedCall[]> = {
 };
 ```
 
-Tuple return type inferred from decoded call inputs.
+The tuple type inferred from the input decoders.
 
 ## Options
 
@@ -91,7 +95,7 @@ type GhostcallEncodeOptions = {
 };
 ```
 
-Controls the maximum full CREATE initcode payload size. Defaults to `49,152`.
+Sets the maximum full request size. The default is `49,152` bytes.
 
 ```ts
 type GhostcallBlockReference = string | number | bigint;
@@ -103,7 +107,8 @@ type GhostcallEthCallOptions = {
 };
 ```
 
-Outer `eth_call` controls. Decimal block numbers passed as strings, numbers, or bigints are normalized to hex quantities.
+Controls the outer `eth_call`. Decimal block numbers are converted to RPC hex
+quantities.
 
 ```ts
 type GhostcallAggregateOptions = GhostcallEncodeOptions & {
@@ -111,7 +116,7 @@ type GhostcallAggregateOptions = GhostcallEncodeOptions & {
 };
 ```
 
-Shared options for `aggregateCalls()` and `aggregateDecodedCalls()`.
+Options shared by `aggregateCalls()` and `aggregateDecodedCalls()`.
 
 ## Provider
 
@@ -121,4 +126,4 @@ type EIP1193ProviderWithRequestFn = {
 };
 ```
 
-Minimal provider shape used by the SDK.
+The minimum provider shape required by the SDK.
