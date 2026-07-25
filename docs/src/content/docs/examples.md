@@ -1,6 +1,6 @@
 ---
 title: Recipes
-description: Copy-ready ghostcall patterns for failures, block options, and manual RPC requests.
+description: Examples for failed calls, block options, and manual RPC requests.
 ---
 
 These recipes cover cases beyond the first decoded batch. The snippets use a

@@ -3,8 +3,7 @@ title: GhostcallSubcallError
 description: Inspect a contract call that caused a batch to throw.
 ---
 
-`GhostcallSubcallError` identifies a failed contract call when the SDK is
-configured to stop on failure.
+`GhostcallSubcallError` identifies which contract call failed.
 
 - `aggregateDecodedCalls()` throws it for any failed call.
 - `aggregateCalls()` throws it when a failed call does not set

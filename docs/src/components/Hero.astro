@@ -1,0 +1,75 @@
+---
+// biome-ignore lint/correctness/noUnusedVariables: Referenced by the Astro template.
+const hero = Astro.locals.starlightRoute.entry.data.hero;
+---
+
+{
+	hero && (
+		<section class="manual-abstract" aria-labelledby="_top">
+			<div class="manual-abstract-label" aria-hidden="true">
+				<span>§00</span>
+				<span>Abstract</span>
+			</div>
+			<div class="manual-abstract-body">
+				<h1 id="_top">{hero.title}</h1>
+				{hero.tagline && <p>{hero.tagline}</p>}
+			</div>
+		</section>
+	)
+}
+
+<style>
+	.manual-abstract {
+		display: grid;
+		grid-template-columns: var(--gc-label-column) minmax(0, 1fr);
+		gap: var(--gc-column-gap);
+		padding-block: clamp(3rem, 8vw, 6.5rem) clamp(2rem, 4vw, 3.5rem);
+	}
+
+	.manual-abstract-label {
+		display: flex;
+		gap: 0.75rem;
+		padding-top: 0.65rem;
+		color: var(--gc-muted);
+		font-family: var(--gc-font-mono);
+		font-size: 0.78rem;
+		font-weight: 600;
+		letter-spacing: 0.09em;
+		text-transform: uppercase;
+	}
+
+	.manual-abstract-body {
+		min-width: 0;
+	}
+
+	h1 {
+		max-width: 13ch;
+		margin: 0;
+		color: var(--gc-ink);
+		font-family: var(--gc-font-serif);
+		font-size: clamp(3rem, 7vw, 5.8rem);
+		font-weight: 600;
+		letter-spacing: -0.055em;
+		line-height: 0.92;
+	}
+
+	p {
+		max-width: 48rem;
+		margin: 1.6rem 0 0;
+		color: var(--gc-muted);
+		font-family: var(--gc-font-serif);
+		font-size: clamp(1.08rem, 1.6vw, 1.35rem);
+		line-height: 1.55;
+	}
+
+	@media (max-width: 55.99rem) {
+		.manual-abstract {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 1.4rem;
+		}
+
+		.manual-abstract-label {
+			padding-top: 0;
+		}
+	}
+</style>

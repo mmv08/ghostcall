@@ -44,8 +44,7 @@ type GhostcallDecodedCall<TResult = unknown> = GhostcallCall & {
 };
 ```
 
-The input for `aggregateDecodedCalls()`. Every entry supplies its own result
-decoder.
+The input for `aggregateDecodedCalls()`. Each entry includes a result decoder.
 
 ## Results
 

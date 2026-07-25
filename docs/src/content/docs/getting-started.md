@@ -3,8 +3,8 @@ title: Getting Started
 description: Install ghostcall and send a first batch of contract reads.
 ---
 
-This guide starts with an empty TypeScript project and ends with two decoded
-ERC-20 reads from one RPC request.
+This guide installs ghostcall in an empty TypeScript project and reads two
+ERC-20 values in one RPC request.
 
 ## 1. Install the packages
 
@@ -13,7 +13,7 @@ npm install @volga-sh/evm-ghostcall viem
 ```
 
 ghostcall accepts any provider with a `request` method compatible with
-[EIP-1193](https://eips.ethereum.org/EIPS/eip-1193). A provider sends JSON-RPC
+[EIP‑1193](https://eips.ethereum.org/EIPS/eip-1193). A provider sends JSON-RPC
 requests to an EVM node. This guide uses viem for the provider and for ABI
 encoding and decoding. Ethers, ox, and custom ABI helpers also work.
 

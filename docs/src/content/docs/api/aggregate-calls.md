@@ -4,8 +4,8 @@ description: Send a batch and return raw success or failure results.
 ---
 
 `aggregateCalls()` sends one `eth_call` and returns raw results in call order.
-Use it when success flags, revert data, or permission for selected
-calls to fail.
+Use it when success flags or revert data are needed, or when selected calls may
+fail.
 
 ## Usage
 

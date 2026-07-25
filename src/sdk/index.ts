@@ -351,7 +351,7 @@ async function aggregateCalls(
 /**
  * Sends a ghostcall batch and decodes every result.
  *
- * Each call supplies a `decodeResult` function. The returned tuple keeps call
+ * Each call includes a `decodeResult` function. The returned tuple keeps call
  * order and infers each value type from its decoder. Any failed call throws
  * {@link GhostcallSubcallError}. Use {@link aggregateCalls} when a failed call
  * should remain in the returned results.

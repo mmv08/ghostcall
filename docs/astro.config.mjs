@@ -4,16 +4,34 @@ import { defineConfig } from "astro/config";
 const site = "https://ghostcall.volga.sh";
 const socialImage = new URL("/og.png", site).href;
 const socialImageAlt =
-	"ghostcall: Batch contract reads in one call without deploying Multicall.";
+	"ghostcall documentation: Batch reads through one eth_call.";
 
 export default defineConfig({
 	site,
 	integrations: [
 		starlight({
 			title: "ghostcall",
-			description:
-				"Batch EVM contract reads without deploying a Multicall contract.",
+			description: "Batch contract reads through one CREATE-style eth_call.",
+			tableOfContents: false,
+			expressiveCode: {
+				themes: ["github-light"],
+				useStarlightDarkModeSwitch: false,
+				styleOverrides: {
+					frames: {
+						editorBackground: "var(--gc-code)",
+						terminalBackground: "var(--gc-code)",
+						editorActiveTabBackground: "var(--gc-code)",
+						inlineButtonBackground: "var(--gc-surface)",
+						inlineButtonForeground: "var(--gc-code-ink)",
+						frameBoxShadowCssValue: "none",
+					},
+				},
+			},
 			head: [
+				{
+					tag: "meta",
+					attrs: { name: "color-scheme", content: "light" },
+				},
 				{
 					tag: "meta",
 					attrs: { property: "og:image", content: socialImage },
@@ -58,6 +76,14 @@ export default defineConfig({
 				},
 			],
 			customCss: ["./src/styles/volga.css"],
+			components: {
+				Footer: "./src/components/Footer.astro",
+				Header: "./src/components/Header.astro",
+				Hero: "./src/components/Hero.astro",
+				PageTitle: "./src/components/PageTitle.astro",
+				ThemeProvider: "./src/components/LightTheme.astro",
+				ThemeSelect: "./src/components/NoThemeSelect.astro",
+			},
 			editLink: {
 				baseUrl: "https://github.com/volga-sh/ghostcall/edit/main/docs/",
 			},
