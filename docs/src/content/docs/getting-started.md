@@ -13,7 +13,7 @@ npm install @volga-sh/evm-ghostcall viem
 ```
 
 ghostcall accepts any provider with a `request` method compatible with
-[EIP-1193](https://eips.ethereum.org/EIPS/eip-1193). A provider sends JSON-RPC
+[EIP‑1193](https://eips.ethereum.org/EIPS/eip-1193). A provider sends JSON-RPC
 requests to an EVM node. This guide uses viem for the provider and for ABI
 encoding and decoding. Ethers, ox, and custom ABI helpers also work.
 
