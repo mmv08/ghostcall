@@ -1,8 +1,6 @@
 ---
 // biome-ignore lint/correctness/noUnusedImports: Rendered by the Astro template.
 import Search from "virtual:starlight/components/Search";
-// biome-ignore lint/correctness/noUnusedImports: Referenced by the Astro template.
-import packageManifest from "../../../package.json";
 
 // biome-ignore lint/correctness/noUnusedVariables: Referenced by the Astro template.
 const repository = "https://github.com/volga-sh/ghostcall";
@@ -17,7 +15,6 @@ const repository = "https://github.com/volga-sh/ghostcall";
 		<a href="/api/">API</a>
 		<a class="manual-nav-optional" href="/protocol/">Protocol</a>
 		<a href={repository}>Source</a>
-		<span class="manual-revision">Rev {packageManifest.version}</span>
 	</nav>
 
 	<div class="manual-search">
@@ -35,11 +32,8 @@ const repository = "https://github.com/volga-sh/ghostcall";
 		height: 100%;
 	}
 
-	/* On the landing page the masthead sits over the centred column rather than
-	   the viewport. The gap tightens because brand + nav + search intrinsically
-	   need 799px at the widest gap, which is 7px more than the column allows. */
+	/* The landing-page masthead follows the same centred measure as its content. */
 	:global([data-has-hero]) .manual-header {
-		gap: 2rem;
 		max-width: var(--gc-sheet);
 		margin-inline: auto;
 	}
@@ -80,11 +74,6 @@ const repository = "https://github.com/volga-sh/ghostcall";
 		color: var(--gc-accent);
 	}
 
-	.manual-revision {
-		color: var(--gc-muted);
-		font-weight: 500;
-	}
-
 	.manual-search {
 		display: flex;
 		justify-content: flex-end;
@@ -92,8 +81,7 @@ const repository = "https://github.com/volga-sh/ghostcall";
 	}
 
 	@media (max-width: 68rem) {
-		.manual-nav-optional,
-		.manual-revision {
+		.manual-nav-optional {
 			display: none;
 		}
 	}
