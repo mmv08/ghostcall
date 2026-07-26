@@ -3,9 +3,8 @@
 const repository = "https://github.com/volga-sh/ghostcall";
 ---
 
-<section class="manual-plate">
-	<div class="manual-plate-body">
-		<figure>
+<section class="manual-plate not-content">
+	<figure>
 			<div
 				class="batch-flow"
 				role="img"
@@ -17,14 +16,14 @@ const repository = "https://github.com/volga-sh/ghostcall";
 					<li>decimals()</li>
 				</ul>
 
-				<span class="flow-arrow flow-arrow-in" aria-hidden="true"></span>
+				<span class="flow-arrow" aria-hidden="true"></span>
 
 				<div class="flow-request" aria-hidden="true">
 					<strong>ghostcall</strong>
 					<span>initcode program</span>
 				</div>
 
-				<span class="flow-arrow flow-arrow-out" aria-hidden="true"></span>
+				<span class="flow-arrow" aria-hidden="true"></span>
 
 				<ul class="flow-stack flow-results" aria-hidden="true">
 					<li>0x…de0b</li>
@@ -37,13 +36,12 @@ const repository = "https://github.com/volga-sh/ghostcall";
 				<span><i>Fig. 0.1</i> — Three contract reads encoded into one simulated request.</span>
 				<strong>3 calls / 1 request</strong>
 			</figcaption>
-		</figure>
+	</figure>
 
-		<nav class="plate-links" aria-label="Landing page links">
-			<a href="/getting-started/">Getting started <span aria-hidden="true">→</span></a>
-			<a href={repository}>Source <span aria-hidden="true">→</span></a>
-		</nav>
-	</div>
+	<nav class="plate-links" aria-label="Landing page links">
+		<a href="/getting-started/">Getting started <span aria-hidden="true">→</span></a>
+		<a href={repository}>Source <span aria-hidden="true">→</span></a>
+	</nav>
 </section>
 
 <style>
@@ -51,7 +49,6 @@ const repository = "https://github.com/volga-sh/ghostcall";
 		padding-block: 1rem 2.25rem;
 	}
 
-	.manual-plate-body,
 	figure {
 		min-width: 0;
 		margin: 0;
@@ -92,6 +89,10 @@ const repository = "https://github.com/volga-sh/ghostcall";
 		text-align: center;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+	}
+
+	.flow-stack li + li {
+		margin-top: 0.25rem;
 	}
 
 	.flow-request {
@@ -146,6 +147,7 @@ const repository = "https://github.com/volga-sh/ghostcall";
 		justify-content: space-between;
 		align-items: baseline;
 		gap: 1rem 2rem;
+		margin-top: var(--sl-content-gap-y);
 		padding-top: 1rem;
 		color: var(--gc-muted);
 		font-family: var(--gc-font-serif);
@@ -183,8 +185,7 @@ const repository = "https://github.com/volga-sh/ghostcall";
 		text-transform: uppercase;
 	}
 
-	.plate-links a:hover,
-	.plate-links a:focus-visible {
+	.plate-links a:is(:hover, :focus-visible) {
 		border-color: var(--gc-accent);
 		color: var(--gc-accent);
 	}
