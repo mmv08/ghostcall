@@ -87,8 +87,8 @@
 	--gc-code: #eef2f5;
 	--gc-code-chrome: #e2e8ed;
 	--gc-code-ink: #172033;
-	--gc-font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
-	--gc-font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+	--gc-font-serif: "Source Serif 4", "Georgia", "Times New Roman", serif;
+	--gc-font-mono: "IBM Plex Mono", "SFMono-Regular", "Consolas", monospace;
 
 	--sl-color-white: var(--gc-ink);
 	--sl-color-gray-1: #253047;
