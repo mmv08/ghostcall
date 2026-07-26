@@ -83,6 +83,8 @@
 	--gc-rule-strong: #918a7e;
 	--gc-accent: #b4472a;
 	--gc-accent-soft: #ead8cf;
+	/* Readable on --gc-accent-soft, where --gc-accent only reaches 3.9:1. */
+	--gc-accent-deep: #7d2e1c;
 	--gc-code: #eef2f5;
 	--gc-code-chrome: #e2e8ed;
 	--gc-code-ink: #172033;
@@ -120,8 +122,11 @@
 }
 
 :root {
-	--gc-label-column: clamp(10rem, 17vw, 13.5rem);
-	--gc-column-gap: clamp(2rem, 5vw, 5rem);
+	/* A4 page width at 96dpi: 210mm = 793.7px. The label column, gap and the
+	   remaining 39.5rem measure leave margins in A4 proportion. */
+	--gc-sheet: 49.5rem;
+	--gc-label-column: 7.5rem;
+	--gc-column-gap: 2.5rem;
 	--sl-line-height: 1.62;
 	--sl-line-height-headings: 1.05;
 	--sl-content-width: 54rem;
@@ -253,7 +258,7 @@ site-search dialog {
 }
 
 .sl-markdown-content {
-	color: var(--gc-muted);
+	color: var(--gc-ink);
 	font-family: var(--gc-font-serif);
 }
 
@@ -320,7 +325,7 @@ site-search dialog {
 
 .sl-markdown-content blockquote:not(:where(.not-content *)) {
 	border-inline-start: 2px solid var(--gc-accent);
-	color: var(--gc-muted);
+	color: var(--gc-ink);
 	font-style: italic;
 }
 
@@ -435,7 +440,7 @@ site-search dialog {
 }
 
 [data-has-hero] main {
-	padding: 0;
+	padding: 0 0 2rem;
 }
 
 [data-has-hero] .content-panel {
@@ -443,7 +448,8 @@ site-search dialog {
 }
 
 [data-has-hero] .content-panel > .sl-container {
-	max-width: 100%;
+	width: 100%;
+	max-width: var(--gc-sheet);
 	margin-inline: auto;
 }
 
@@ -459,7 +465,10 @@ site-search dialog {
 
 [data-has-hero] .manual-section-body {
 	margin-top: 0;
-	overflow-wrap: anywhere;
+}
+
+[data-has-hero] .manual-section-body > p + p:not(.manual-follow-link) {
+	margin-top: 0.85rem;
 }
 
 [data-has-hero] .manual-section-body > * {
@@ -473,7 +482,7 @@ site-search dialog {
 
 [data-has-hero] .manual-section-body > .expressive-code {
 	width: 100%;
-	margin-top: 1.5rem;
+	margin-top: 1.15rem;
 	margin-inline: 0;
 }
 
@@ -485,18 +494,25 @@ site-search dialog {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 1.5rem;
-	margin-top: 1.75rem;
+	margin-top: 1.25rem;
 }
 
 .manual-follow-link a {
 	border-bottom: 1px solid var(--gc-ink);
 	padding-bottom: 0.2rem;
+	color: var(--gc-ink);
 	font-family: var(--gc-font-mono);
 	font-size: 0.74rem;
 	font-weight: 600;
 	letter-spacing: 0.04em;
 	text-decoration: none;
 	text-transform: uppercase;
+}
+
+.manual-follow-link a:hover,
+.manual-follow-link a:focus-visible {
+	border-color: var(--gc-accent);
+	color: var(--gc-accent);
 }
 
 @media (max-width: 80rem) {

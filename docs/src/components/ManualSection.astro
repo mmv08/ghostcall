@@ -33,24 +33,27 @@ const headingId = `${id}-title`;
 			minmax(0, var(--gc-label-column))
 			minmax(0, 1fr);
 		gap: var(--gc-column-gap);
-		padding-block: clamp(2.5rem, 6vw, 5rem);
+		padding-block: 2.25rem;
 		border-top: 1px solid var(--gc-rule);
 		scroll-margin-top: calc(var(--sl-nav-height) + 1.5rem);
 	}
 
 	.manual-section-label {
 		min-width: 0;
+		/* Sits the label's cap-line on the first cap-line of the body text. */
+		padding-top: 0.4rem;
 	}
 
 	h2 {
 		display: flex;
-		gap: 0.75rem;
+		flex-direction: column;
+		gap: 0.3rem;
 		margin: 0;
 		padding: 0;
 		border: 0;
 		color: var(--gc-muted);
 		font-family: var(--gc-font-mono);
-		font-size: 0.78rem;
+		font-size: 0.68rem;
 		font-weight: 600;
 		letter-spacing: 0.09em;
 		line-height: 1.45;
@@ -63,10 +66,19 @@ const headingId = `${id}-title`;
 		max-width: 100%;
 	}
 
-	@media (max-width: 55.99rem) {
+	@media screen and (max-width: 47.99rem) {
 		.manual-section {
 			grid-template-columns: minmax(0, 1fr);
-			gap: 1.6rem;
+			gap: 1.1rem;
+		}
+
+		.manual-section-label {
+			padding-top: 0;
+		}
+
+		h2 {
+			flex-direction: row;
+			gap: 0.75rem;
 		}
 	}
 </style>

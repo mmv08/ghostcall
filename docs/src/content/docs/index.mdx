@@ -28,12 +28,8 @@ import PayloadFigure from "../../components/PayloadFigure.astro";
 <ManualSection index="01" title="Install" id="install">
 
 ```sh title="Terminal"
-npm install @volga-sh/evm-ghostcall viem
+npm install @volga-sh/evm-ghostcall
 ```
-
-`@volga-sh/evm-ghostcall` distributes the ghostcall program and its TypeScript
-SDK. Examples use viem for RPC requests and ABI encoding. Other EIP‑1193
-providers and ABI libraries also work.
 
 </ManualSection>
 
@@ -42,9 +38,6 @@ providers and ABI libraries also work.
 This example reads the WETH total supply and one account balance on Ethereum.
 ghostcall sends both reads in one RPC request and returns decoded `bigint`
 values in the same order.
-
-The example assumes an existing EIP‑1193 `provider`; `./erc20` contains the viem
-ABI encoding and decoding helpers.
 
 ```ts title="Listing 2.1 · TypeScript"
 import { aggregateDecodedCalls } from "@volga-sh/evm-ghostcall";
@@ -68,22 +61,21 @@ const [supply, balance] = await aggregateDecodedCalls(provider, [
 ]);
 ```
 
-`supply` and `balance` are inferred as `bigint`. The tuple matches the call order.
-
-<p class="manual-follow-link">
-	<a href="/getting-started/">Getting started <span aria-hidden="true">→</span></a>
-</p>
-
 </ManualSection>
 
 <ManualSection index="03" title="How it works" id="how-it-works">
 
-The SDK places each target address and calldata value after the 91-byte ghostcall
-program. An `eth_call` without a `to` address executes those bytes as contract
-creation code. Each target call runs in order, and the program returns a packed
-result entry for every call.
+Batching reads normally means deploying a Multicall contract and routing every
+read through it. ghostcall removes that dependency by using a step the EVM
+already performs: contract creation.
 
-Because `eth_call` simulates execution, no contract is deployed and no state
+An `eth_call` without a `to` address makes the EVM treat its `data` as initcode,
+the code that runs once when a contract is created. Initcode normally ends by
+returning the runtime bytecode to store onchain. ghostcall returns batch results
+instead. Its 91-byte program reads the call entries appended after its own bytes,
+runs each one in order, and returns a packed result entry per call.
+
+Because `eth_call` only simulates execution, no contract is deployed and no state
 change is saved.
 
 <PayloadFigure />

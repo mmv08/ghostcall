@@ -35,6 +35,15 @@ const repository = "https://github.com/volga-sh/ghostcall";
 		height: 100%;
 	}
 
+	/* On the landing page the masthead sits over the centred column rather than
+	   the viewport. The gap tightens because brand + nav + search intrinsically
+	   need 799px at the widest gap, which is 7px more than the column allows. */
+	:global([data-has-hero]) .manual-header {
+		gap: 2rem;
+		max-width: var(--gc-sheet);
+		margin-inline: auto;
+	}
+
 	.manual-brand {
 		color: var(--gc-ink);
 		font-family: var(--gc-font-serif);
@@ -72,7 +81,8 @@ const repository = "https://github.com/volga-sh/ghostcall";
 	}
 
 	.manual-revision {
-		color: color-mix(in srgb, var(--gc-muted) 72%, transparent);
+		color: var(--gc-muted);
+		font-weight: 500;
 	}
 
 	.manual-search {
