@@ -144,9 +144,7 @@ html {
 }
 
 body {
-	min-width: 0;
 	font-size: 1.03rem;
-	font-weight: 400;
 }
 
 ::selection {

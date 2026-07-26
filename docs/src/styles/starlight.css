@@ -5,16 +5,7 @@
 	background: var(--gc-paper);
 }
 
-.main-frame,
-.main-pane,
-main,
-.content-panel,
-.sl-markdown-content {
-	min-width: 0;
-}
-
-.content-panel > .sl-container {
-	width: 100%;
+.main-pane {
 	min-width: 0;
 }
 
@@ -89,10 +80,6 @@ site-search dialog {
 	font-family: var(--gc-font-serif);
 }
 
-.sl-markdown-content > :first-child {
-	margin-top: 0;
-}
-
 .sl-markdown-content :is(h1, h2, h3, h4):not(:where(.not-content *)) {
 	letter-spacing: -0.025em;
 	text-wrap: balance;
@@ -110,9 +97,7 @@ site-search dialog {
 .sl-markdown-content
 	> .sl-heading-wrapper.level-h3
 	> h3:not(:where(.not-content *)) {
-	margin: 0;
 	padding: 0;
-	border: 0;
 }
 
 .sl-markdown-content > .sl-heading-wrapper.level-h3 {
