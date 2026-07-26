@@ -2,21 +2,21 @@
 const route = Astro.locals.starlightRoute;
 const id = route.entry.id;
 
-const labels = new Map([
-	["getting-started", "Guide"],
-	["examples", "Guide"],
-	["protocol", "Protocol"],
-	["limits", "Protocol"],
-	["development", "Contribute"],
-]);
+const labels: Record<string, string> = {
+	"getting-started": "Guide",
+	examples: "Guide",
+	protocol: "Protocol",
+	limits: "Protocol",
+	development: "Contribute",
+};
 // biome-ignore lint/correctness/noUnusedVariables: Referenced by the Astro template.
 const label =
 	id === "api" || id.startsWith("api/")
 		? "API reference"
-		: (labels.get(id) ?? "Reference");
+		: (labels[id] ?? "Reference");
 ---
 
-<div class="manual-page-title">
+<div class="manual-page-title not-content">
 	<p>{label}</p>
 	<h1 id="_top">{route.entry.data.title}</h1>
 </div>

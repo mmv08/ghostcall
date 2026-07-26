@@ -24,7 +24,7 @@ const entries = [
 ];
 ---
 
-<nav class="api-index" aria-label="ghostcall functions">
+<nav class="api-index not-content" aria-label="ghostcall functions">
 	<div class="api-index-header" aria-hidden="true">
 		<span>Function</span>
 		<span>Result</span>
@@ -81,7 +81,6 @@ const entries = [
 
 	.api-index-row {
 		position: relative;
-		width: 100%;
 		border-bottom: 1px solid var(--gc-rule);
 		padding: 1.05rem 1rem;
 		color: var(--gc-muted);
@@ -105,7 +104,9 @@ const entries = [
 	}
 
 	.api-index-row code {
+		margin-block: -0.125rem;
 		border: 0;
+		padding: 0.125rem 0.375rem;
 		background: transparent;
 		color: var(--gc-ink);
 		font-family: var(--gc-font-mono);
@@ -126,20 +127,15 @@ const entries = [
 		font-style: normal;
 	}
 
-	.api-index-row:hover,
-	.api-index-row:focus-visible {
+	.api-index-row:is(:hover, :focus-visible) {
 		background: var(--gc-accent-soft);
 	}
 
-	.api-index-row:hover::before,
-	.api-index-row:focus-visible::before {
+	.api-index-row:is(:hover, :focus-visible)::before {
 		background: var(--gc-accent);
 	}
 
-	.api-index-row:hover code,
-	.api-index-row:focus-visible code,
-	.api-index-row:hover i,
-	.api-index-row:focus-visible i {
+	.api-index-row:is(:hover, :focus-visible) :is(code, i) {
 		color: var(--gc-accent-deep);
 	}
 

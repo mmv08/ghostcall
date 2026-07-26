@@ -12,7 +12,7 @@ const headingId = `${id}-title`;
 ---
 
 <section class="manual-section" id={id} aria-labelledby={headingId}>
-	<div class="manual-section-label">
+	<div class="manual-section-label not-content">
 		<h2 id={headingId}>
 			<span>§{index}</span>
 			<span>{title}</span>
@@ -26,9 +26,6 @@ const headingId = `${id}-title`;
 <style>
 	.manual-section {
 		display: grid;
-		width: 100%;
-		min-width: 0;
-		max-width: 100%;
 		grid-template-columns:
 			minmax(0, var(--gc-label-column))
 			minmax(0, 1fr);
@@ -61,9 +58,40 @@ const headingId = `${id}-title`;
 	}
 
 	.manual-section-body {
-		width: 100%;
 		min-width: 0;
-		max-width: 100%;
+		margin-top: 0;
+	}
+
+	.manual-section-body > :global(p + p:not(.manual-follow-link)) {
+		margin-top: 0.85rem;
+	}
+
+	.manual-section-body > :global(* + .expressive-code) {
+		margin-top: 1.15rem;
+	}
+
+	.manual-section-body > :global(.manual-follow-link) {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1.5rem;
+		margin-top: 1.25rem;
+	}
+
+	.manual-section-body > :global(.manual-follow-link a) {
+		border-bottom: 1px solid var(--gc-ink);
+		padding-bottom: 0.2rem;
+		color: var(--gc-ink);
+		font-family: var(--gc-font-mono);
+		font-size: 0.74rem;
+		font-weight: 600;
+		letter-spacing: 0.04em;
+		text-decoration: none;
+		text-transform: uppercase;
+	}
+
+	.manual-section-body > :global(.manual-follow-link a:is(:hover, :focus-visible)) {
+		border-color: var(--gc-accent);
+		color: var(--gc-accent);
 	}
 
 	@media screen and (max-width: 47.99rem) {
