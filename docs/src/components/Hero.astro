@@ -23,16 +23,18 @@ const hero = Astro.locals.starlightRoute.entry.data.hero;
 		display: grid;
 		grid-template-columns: var(--gc-label-column) minmax(0, 1fr);
 		gap: var(--gc-column-gap);
-		padding-block: clamp(3rem, 8vw, 6.5rem) clamp(2rem, 4vw, 3.5rem);
+		padding-block: 2.5rem 1.5rem;
 	}
 
 	.manual-abstract-label {
 		display: flex;
-		gap: 0.75rem;
-		padding-top: 0.65rem;
+		flex-direction: column;
+		gap: 0.3rem;
+		/* Sits the label's cap-line on the first cap-line of the title. */
+		padding-top: 0.15rem;
 		color: var(--gc-muted);
 		font-family: var(--gc-font-mono);
-		font-size: 0.78rem;
+		font-size: 0.68rem;
 		font-weight: 600;
 		letter-spacing: 0.09em;
 		text-transform: uppercase;
@@ -43,33 +45,38 @@ const hero = Astro.locals.starlightRoute.entry.data.hero;
 	}
 
 	h1 {
-		max-width: 13ch;
 		margin: 0;
 		color: var(--gc-ink);
 		font-family: var(--gc-font-serif);
-		font-size: clamp(3rem, 7vw, 5.8rem);
+		font-size: 3.5rem;
 		font-weight: 600;
-		letter-spacing: -0.055em;
-		line-height: 0.92;
+		letter-spacing: -0.03em;
+		line-height: 1.02;
+		text-wrap: balance;
 	}
 
 	p {
-		max-width: 48rem;
-		margin: 1.6rem 0 0;
-		color: var(--gc-muted);
+		margin: 1.15rem 0 0;
+		color: var(--gc-ink);
 		font-family: var(--gc-font-serif);
-		font-size: clamp(1.08rem, 1.6vw, 1.35rem);
+		font-size: 1.15rem;
 		line-height: 1.55;
 	}
 
-	@media (max-width: 55.99rem) {
+	@media screen and (max-width: 47.99rem) {
 		.manual-abstract {
 			grid-template-columns: minmax(0, 1fr);
-			gap: 1.4rem;
+			gap: 1rem;
 		}
 
 		.manual-abstract-label {
+			flex-direction: row;
+			gap: 0.75rem;
 			padding-top: 0;
+		}
+
+		h1 {
+			font-size: 2.4rem;
 		}
 	}
 </style>
